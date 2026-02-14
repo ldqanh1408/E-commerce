@@ -1,11 +1,20 @@
 version: '3.8'
 
 services:
-  # ==========================================
-  # 1. INFRASTRUCTURE (Hạ Tầng)
-  # ==========================================
+  # --- Discovery Service (Eureka) ---
+  discovery-service:
+    build: ./discovery-service
+    ports:
+      - "8761:8761"
+    networks:
+      - axon-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  # --- Axon Server (Event Store & Messaging Hub) ---
+  # --- Axon Server ---
   axonserver:
     image: axoniq/axonserver:2023.2
     hostname: axonserver
@@ -13,8 +22,8 @@ services:
       - axon-data:/axon-server-data
       - axon-events:/axon-server-eventstore
     ports:
-      - "8024:8024" # Dashboard: http://localhost:8024
-      - "8124:8124" # gRPC Port
+      - "8024:8024"
+      - "8124:8124"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8024/actuator/health"]
       interval: 10s
@@ -23,7 +32,7 @@ services:
     networks:
       - axon-net
 
-  # --- Databases (PostgreSQL - Database per Service) ---
+  # --- Databases ---
   postgres-user:
     image: postgres:15-alpine
     environment:
@@ -84,7 +93,6 @@ services:
     networks:
       - axon-net
 
-  # --- Redis (Cache & Cart) ---
   redis:
     image: redis:alpine
     volumes:
@@ -92,19 +100,19 @@ services:
     networks:
       - axon-net
 
-  # ==========================================
-  # 2. MICROSERVICES (Business Logic)
-  # ==========================================
-
+  # --- Microservices ---
   user-service:
     build: ./user-service
     restart: on-failure
     environment:
+      EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/user_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
+      discovery-service:
+        condition: service_healthy
       postgres-user:
         condition: service_healthy
     networks:
@@ -114,14 +122,15 @@ services:
     build: ./product-service
     restart: on-failure
     environment:
+      EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
-      # Kết nối Axon Server
       AXON_AXONSERVER_SERVERS: axonserver:8124
-      # Kết nối DB View
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-product:5432/product_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
+      discovery-service:
+        condition: service_healthy
       axonserver:
         condition: service_healthy
       postgres-product:
@@ -133,12 +142,15 @@ services:
     build: ./order-service
     restart: on-failure
     environment:
+      EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
       AXON_AXONSERVER_SERVERS: axonserver:8124
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-order:5432/order_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
+      discovery-service:
+        condition: service_healthy
       axonserver:
         condition: service_healthy
       postgres-order:
@@ -150,12 +162,15 @@ services:
     build: ./payment-service
     restart: on-failure
     environment:
+      EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
       AXON_AXONSERVER_SERVERS: axonserver:8124
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
+      discovery-service:
+        condition: service_healthy
       axonserver:
         condition: service_healthy
       postgres-payment:
@@ -167,82 +182,62 @@ services:
     build: ./cart-service
     restart: on-failure
     environment:
+      EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
     depends_on:
-      - redis
+      discovery-service:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - axon-net
 
-  # ==========================================
-  # 3. API GATEWAY (Spring Cloud Gateway)
-  # ==========================================
-  
+  # --- API Gateway ---
   api-gateway:
     build: ./api-gateway
     restart: on-failure
     ports:
-      - "80:8080" # Map cổng 80 của máy Host -> 8080 Gateway
+      - "80:8080"
     environment:
+      EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
-      # Cấu hình Routing động (hoặc qua application.yml)
       SPRING_CLOUD_GATEWAY_ROUTES_0_ID: user-service
-      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://user-service:8080
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: lb://user-service
       SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/api/v1/users/**, /api/v1/auth/**
       
       SPRING_CLOUD_GATEWAY_ROUTES_1_ID: product-service
-      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://product-service:8080
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: lb://product-service
       SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/api/v1/products/**
       
       SPRING_CLOUD_GATEWAY_ROUTES_2_ID: order-service
-      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://order-service:8080
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: lb://order-service
       SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0: Path=/api/v1/orders/**
       
       SPRING_CLOUD_GATEWAY_ROUTES_3_ID: payment-service
-      SPRING_CLOUD_GATEWAY_ROUTES_3_URI: http://payment-service:8080
+      SPRING_CLOUD_GATEWAY_ROUTES_3_URI: lb://payment-service
       SPRING_CLOUD_GATEWAY_ROUTES_3_PREDICATES_0: Path=/api/v1/payments/**
 
       SPRING_CLOUD_GATEWAY_ROUTES_4_ID: cart-service
-      SPRING_CLOUD_GATEWAY_ROUTES_4_URI: http://cart-service:8080
+      SPRING_CLOUD_GATEWAY_ROUTES_4_URI: lb://cart-service
       SPRING_CLOUD_GATEWAY_ROUTES_4_PREDICATES_0: Path=/api/v1/cart/**
     depends_on:
-      - user-service
-      - product-service
-      - order-service
-      - payment-service
-      - cart-service
+      discovery-service:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
     networks:
       - axon-net
-    discovery-service:
-    build: ./discovery-service
-    ports:
-      - "8761:8761"
-    networks:
-      - axon-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      retries: 5
 
-  # Cập nhật các Service khác (Ví dụ User Service)
-  user-service:
-    # ...
-    environment:
-      # ... các biến cũ ...
-      EUREKA_URI: http://discovery-service:8761/eureka # Trỏ vào container name
-    depends_on:
-      postgres-user:
-        condition: service_healthy
-      discovery-service: # Chờ Eureka lên trước
-        condition: service_healthy
-
-  # Cập nhật tương tự cho Product, Order, Payment, Cart, Gateway...
-  # Nhớ thêm EUREKA_URI và depends_on: discovery-service
-
-# ==========================================
-# 4. VOLUMES & NETWORKS
-# ==========================================
 volumes:
   axon-data:
   axon-events:
