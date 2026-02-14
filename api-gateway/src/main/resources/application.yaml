@@ -1,9 +1,12 @@
 server:
   port: ${SERVER_PORT:8080}
+  shutdown: graceful
 
 spring:
   application:
     name: api-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   cloud:
     gateway:
       discovery:
@@ -36,10 +39,21 @@ spring:
           predicates:
             - Path=/api/v1/cart/**
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: always
+
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+    registry-fetch-interval-seconds: 5
   instance:
     prefer-ip-address: true
-
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10

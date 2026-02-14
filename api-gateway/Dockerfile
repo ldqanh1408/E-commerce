@@ -12,10 +12,15 @@ WORKDIR /app
 # Copy file .jar từ Stage 1 sang Stage 2
 COPY --from=build /app/target/*.jar app.jar
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Biến môi trường mặc định (sẽ bị override bởi docker-compose)
 ENV SERVER_PORT=8080
 
+# Hỗ trợ JAVA_OPTS để config memory, remote debug...
+ENV JAVA_OPTS=""
+# Port mặc định
 EXPOSE 8080
-
-# Chạy ứng dụng
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 ENTRYPOINT ["java", "-jar", "app.jar"]

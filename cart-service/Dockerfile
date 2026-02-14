@@ -18,4 +18,6 @@ ENV SERVER_PORT=8080
 EXPOSE 8080
 
 # Chạy ứng dụng
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Hỗ trợ JAVA_OPTS
+ENV JAVA_OPTS=""
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
