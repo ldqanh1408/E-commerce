@@ -3,7 +3,7 @@ package com.example.userservice.service;
 import com.example.userservice.dto.AuthDto;
 import com.example.userservice.model.User;
 import com.example.userservice.repository.UserRepository;
-import com.example.userservice.sercurity.JwtService;
+import com.example.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
