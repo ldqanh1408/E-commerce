@@ -5,9 +5,25 @@ spring:
   application:
     name: discovery-service
 
+# Actuator - expose health endpoint cho Docker healthcheck
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
 eureka:
+  instance:
+    hostname: discovery-service
   client:
-    register-with-eureka: false # Server không cần tự đăng ký với chính nó
+    # Vì đây là Server, ta không cần nó tự đăng ký vào danh sách của chính nó
+    register-with-eureka: false
     fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
-    wait-time-in-ms-when-sync-empty: 0 # Giảm thời gian chờ khi khởi động dev
+    # Tắt chế độ bảo vệ (Self Preservation) khi chạy ở môi trường Dev/Local để Eureka xóa các service chết nhanh hơn
+    enable-self-preservation: false

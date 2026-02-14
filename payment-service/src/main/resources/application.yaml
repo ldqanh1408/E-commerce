@@ -15,6 +15,9 @@ spring:
 axon:
   axonserver:
     servers: ${AXON_AXONSERVER_SERVERS:localhost:8124}
+    context: default
+    connect-timeout: 15000
+    reconnect-interval: 3000
   serializer:
     general: jackson
     events: jackson
