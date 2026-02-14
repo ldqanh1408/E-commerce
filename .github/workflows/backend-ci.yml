@@ -26,13 +26,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Cài đặt Oracle Java 25
-    - name: Set up Oracle JDK 25
+    # 2. Cài đặt Java 17 (Ổn định cho Lombok & Spring Boot 3)
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '25'        # Phiên bản Java
-        distribution: 'oracle'    # Phân phối Oracle OpenJDK
-        cache: maven              # Cache lại thư viện Maven để build nhanh hơn
+        java-version: '17'        # Dùng bản 17 để tránh lỗi Lombok TypeTag
+        distribution: 'temurin'   # Temurin là bản phân phối chuẩn và ổn định nhất cho CI
+        cache: maven
 
     # 3. Build & Test từng service
     - name: Build with Maven
@@ -61,12 +61,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Cài đặt Java 25 cho Job này luôn
-      - name: Set up Oracle JDK 25
+      # Cài đặt Java 17 cho Job này luôn
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
-          distribution: 'oracle'
+          java-version: '17'
+          distribution: 'temurin'
           cache: maven
 
       # Build file .jar trước
