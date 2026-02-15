@@ -5,7 +5,6 @@ import com.example.userservice.model.User;
 import com.example.userservice.repository.UserRepository;
 import com.example.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +24,7 @@ public class AuthService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword())) // Hash pass
+                .fullName(request.getFullName())
                 .role("ROLE_CUSTOMER")
                 .build();
 

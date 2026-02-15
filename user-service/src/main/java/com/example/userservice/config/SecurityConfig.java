@@ -22,13 +22,12 @@ public class SecurityConfig {
 
     // [Ô Tím: Security Filter Chains]
     // Mũi tên số 2: Nhận request từ người dùng (Actor)
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll() // Cổng công khai
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/v1/auth/**").permitAll() // Login/Register mở cửa
+                        .anyRequest().authenticated()                   // Các API khác phải có Token
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
