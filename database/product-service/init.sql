@@ -33,15 +33,15 @@ CREATE TABLE IF NOT EXISTS snapshot_event_entry (
 -- --- PHẦN 2: BUSINESS TABLES (Read Model) ---
 
 CREATE TABLE IF NOT EXISTS categories (
-                                          id BIGSERIAL PRIMARY KEY,
-                                          name VARCHAR(100) NOT NULL,
-    description TEXT,
-    parent_id BIGINT REFERENCES categories(id)
-    );
+      id BIGSERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      description TEXT,
+      =parent_id BIGINT REFERENCES categories(id)
+);
 
 CREATE TABLE IF NOT EXISTS products (
-                                        id BIGSERIAL PRIMARY KEY,
-                                        product_id VARCHAR(255) UNIQUE NOT NULL, -- Axon Aggregate ID (UUID)
+    id BIGSERIAL PRIMARY KEY,
+    product_id VARCHAR(255) UNIQUE NOT NULL, -- Axon Aggregate ID (UUID)
     category_id BIGINT REFERENCES categories(id),
     name VARCHAR(255) NOT NULL,
     description TEXT,
