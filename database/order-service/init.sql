@@ -5,49 +5,6 @@
 
 -- --- PHẦN 1: AXON FRAMEWORK TABLES (Quan trọng nhất: Saga) ---
 
-CREATE TABLE IF NOT EXISTS token_entry (
-    processor_name VARCHAR(255) NOT NULL,
-    segment INTEGER NOT NULL,
-    token BYTEA,
-    token_type VARCHAR(255),
-    timestamp VARCHAR(255),
-    owner VARCHAR(255),
-    PRIMARY KEY (processor_name, segment)
-    );
-
--- Bảng lưu Saga (Quản lý giao dịch phân tán)
-CREATE TABLE IF NOT EXISTS saga_entry (
-    saga_id VARCHAR(255) NOT NULL,
-    revision VARCHAR(255),
-    saga_type VARCHAR(255),
-    serialized_saga BYTEA,
-    PRIMARY KEY (saga_id)
-);
-
--- Bảng liên kết Saga (Association Values)
-CREATE TABLE IF NOT EXISTS association_value_entry (
-    id BIGSERIAL PRIMARY KEY,
-    saga_id VARCHAR(255) NOT NULL,
-    association_key VARCHAR(255),
-    association_value VARCHAR(255),
-    saga_type VARCHAR(255)
-);
-CREATE INDEX IF NOT EXISTS idx_association_saga_id ON association_value_entry (saga_id);
-CREATE INDEX IF NOT EXISTS idx_association_key_value ON association_value_entry (association_key, association_value);
-
-CREATE TABLE IF NOT EXISTS snapshot_event_entry (
-    aggregate_identifier VARCHAR(255) NOT NULL,
-    sequence_number BIGINT NOT NULL,
-    type VARCHAR(255) NOT NULL,
-    event_identifier VARCHAR(255) NOT NULL,
-    meta_data BYTEA,
-    payload BYTEA NOT NULL,
-    payload_revision VARCHAR(255),
-    payload_type VARCHAR(255) NOT NULL,
-    timestamp VARCHAR(255) NOT NULL,
-    PRIMARY KEY (aggregate_identifier, sequence_number, type)
-);
-
 -- --- PHẦN 2: BUSINESS TABLES (Read Model) ---
 
 CREATE TABLE IF NOT EXISTS orders (

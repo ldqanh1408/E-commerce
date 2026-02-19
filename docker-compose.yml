@@ -149,6 +149,7 @@ services:
     build: ./product-service
     restart: on-failure
     environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
       AXON_AXONSERVER_SERVERS: axonserver:8124
@@ -156,6 +157,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-product:5432/${PRODUCT_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      # Redis configuration
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       discovery-service:
         condition: service_healthy
@@ -163,6 +167,8 @@ services:
         condition: service_healthy
       postgres-product:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - axon-net
 

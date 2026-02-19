@@ -1,14 +1,22 @@
 package com.example.productservice.coreapi.queries.dto;
 
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Value // Immutable object (Tốt cho DTO)
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ProductDto {
-    String productId;
-    String name;
-    BigDecimal price;
-    Integer quantity;
+    private String productId;
+    private String name;
+    private BigDecimal price;
+    private Integer stock;
+    private String imageUrl;
+    private String description;
+    private String sku;
+    private String categoryName;
 }

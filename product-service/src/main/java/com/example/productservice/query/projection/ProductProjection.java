@@ -1,39 +1,45 @@
 package com.example.productservice.query.projection;
 
 import com.example.productservice.coreapi.queries.GetProductDetailQuery;
+import com.example.productservice.coreapi.queries.GetProductsQuery;
 import com.example.productservice.coreapi.queries.dto.ProductDto;
-import com.example.productservice.query.entity.Product;
-import com.example.productservice.query.entity.Inventory;
-import com.example.productservice.query.repository.InventoryRepository;
-import com.example.productservice.query.repository.ProductRepository;
+import com.example.productservice.query.service.ProductCacheService;
+import com.example.productservice.query.service.ProductReadService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.axonframework.queryhandling.QueryHandler;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-@Component
-public class ProductProjection {
-    private final ProductRepository productRepo;
-    private final InventoryRepository inventoryRepo;
+import java.util.List;
 
-    public ProductProjection(ProductRepository productRepo, InventoryRepository inventoryRepo) {
-        this.productRepo = productRepo;
-        this.inventoryRepo = inventoryRepo;
-    }
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ProductProjection {
+
+    private final ProductReadService productReadService;
+    private final ProductCacheService productCacheService;
 
     @QueryHandler
     public ProductDto handle(GetProductDetailQuery query) {
-        Product entity = productRepo.findByProductId(query.getProductId()).orElse(null);
-        if (entity == null) return null;
+        ProductDto cached = productCacheService.getProduct(query.getProductId());
+        if (cached != null) {
+            return cached;
+        }
 
-        Inventory inventory = inventoryRepo.findByProductId(query.getProductId()).orElse(null);
-        Integer quantity = (inventory != null) ? inventory.getQuantity() : 0;
+        ProductDto product = productReadService.getProductDetails(query.getProductId());
+        if (product != null) {
+            productCacheService.cacheProduct(product);
+        }
+        return product;
+    }
 
-        // Map Entity -> DTO
-        return new ProductDto(
-                entity.getProductId(),
-                entity.getName(),
-                entity.getPrice(),
-                quantity
+    @QueryHandler
+    public List<ProductDto> handle(GetProductsQuery query) {
+        return productReadService.getProducts(
+                query.getPage(), query.getSize(),
+                query.getSortBy(), query.getSortOrder(),
+                query.getLastId(), query.getLastValue()
         );
     }
 }

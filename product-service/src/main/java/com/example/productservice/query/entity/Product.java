@@ -16,7 +16,13 @@ import java.time.Instant;
         @UniqueConstraint(name = "products_product_id_key",
                 columnNames = {"product_id"}),
         @UniqueConstraint(name = "products_sku_key",
-                columnNames = {"sku"})})
+                columnNames = {"sku"})},
+        indexes = {
+                @Index(name = "idx_products_price", columnList = "price"),
+                @Index(name = "idx_products_name", columnList = "name"),
+                @Index(name = "idx_products_created_at", columnList = "created_at"),
+                @Index(name = "idx_products_price_pid", columnList = "price, product_id")
+        })
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

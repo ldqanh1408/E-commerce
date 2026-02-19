@@ -6,12 +6,22 @@ spring:
   application:
     name: product-service
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/product_db} # Port 5433 nếu chạy local
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/product_db}
     username: ${SPRING_DATASOURCE_USERNAME:user}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
@@ -41,6 +51,6 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
     registry-fetch-interval-seconds: 5
   instance:
-    prefer-ip-address: true # Ưu tiên dùng IP thay vì Hostname trong Docker
+    prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 10
