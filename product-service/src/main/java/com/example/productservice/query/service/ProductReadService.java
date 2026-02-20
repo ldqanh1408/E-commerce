@@ -3,162 +3,143 @@ package com.example.productservice.query.service;
 import com.example.productservice.coreapi.queries.dto.ProductDto;
 import com.example.productservice.query.entity.Inventory;
 import com.example.productservice.query.entity.Product;
-import com.example.productservice.query.repository.InventoryRepository;
-import com.example.productservice.query.repository.ProductRepository;
+import com.example.productservice.query.service.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Orchestrator: cache-aside logic ONLY.
+ * Delegates DB queries to ProductQueryService / InventoryQueryService,
+ * mapping to ProductMapper, caching to ProductCacheService.
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductReadService {
 
-    private final ProductRepository productRepo;
-    private final InventoryRepository inventoryRepo;
-    private final ProductCacheService cacheService;
+    private final ProductQueryService queryService;
+    private final InventoryQueryService inventoryService;
+    private final ProductCacheService cache;
+    private final ProductMapper mapper;
+
+    // ── Public API ──────────────────────────────────────────────────
 
     /**
-     * Main entry point: returns product list with cache-aside pattern.
+     * Returns a page of products (cache-aside).
+     * Supports offset-based and cursor-based (keyset) pagination.
      */
-    public List<ProductDto> getProducts(int page, int size, String sortBy, String sortOrder,
-                                        String lastId, String lastValue) {
-        sortBy = sortBy != null ? sortBy : "id";
-        sortOrder = sortOrder != null ? sortOrder : "asc";
+    public List<ProductDto> findProducts(int page, int size,
+                                         String sortBy, String sortOrder,
+                                         String lastId, String lastValue) {
+        String sort  = defaultIfBlank(sortBy, "id");
+        String order = defaultIfBlank(sortOrder, "asc");
+        boolean useCursor = lastId != null && !lastId.isBlank();
 
-        // 1. Build cache key
-        String pageKey = (lastId != null && !lastId.isBlank())
-                ? cacheService.buildCursorKey(lastId, lastValue, size, sortBy, sortOrder)
-                : cacheService.buildPageKey(page, size, sortBy, sortOrder);
+        String pageKey = useCursor
+                ? cache.cursorKey(lastId, lastValue, size, sort, order)
+                : cache.pageKey(page, size, sort, order);
 
-        // 2. Try page cache (list of IDs)
-        List<String> productIds = cacheService.getProductPageIds(pageKey);
-
-        if (productIds == null) {
-            return fetchFromDbAndCache(page, size, sortBy, sortOrder, lastId, lastValue, pageKey);
+        // 1. Check page-level cache (list of IDs)
+        List<String> cachedIds = cache.getPageIds(pageKey);
+        if (cachedIds != null) {
+            return resolveFromCache(cachedIds);
         }
-        return assembleFromCache(productIds);
+
+        // 2. Cache miss → query DB, then populate cache
+        return loadFromDbAndCache(page, size, sort, order, lastId, lastValue, useCursor, pageKey);
     }
 
-    public ProductDto getProductDetails(String productId) {
-        Product product = productRepo.findByProductId(productId).orElse(null);
+    /**
+     * Returns a single product by ID (cache-aside).
+     */
+    public ProductDto findProductById(String productId) {
+        // 1. Check product-level cache
+        ProductDto cached = cache.get(productId);
+        if (cached != null) return cached;
+
+        // 2. Cache miss → query DB
+        Product product = queryService.findById(productId);
         if (product == null) return null;
 
-        Inventory inventory = inventoryRepo.findByProductId(productId).orElse(null);
-        return mapToDto(product, inventory);
+        Inventory inventory = inventoryService.findByProductId(productId);
+        ProductDto dto = mapper.toDto(product, inventory);
+
+        // 3. Populate cache
+        cache.put(dto);
+        return dto;
     }
 
-    public List<Product> findProductsByIds(List<String> productIds) {
-        return productRepo.findByProductIdIn(productIds);
-    }
+    // ── Cache MISS path: load from DB ───────────────────────────────
 
-    public List<ProductDto> mapProductsToDtos(List<Product> products) {
-        if (products.isEmpty()) return Collections.emptyList();
-
-        List<String> ids = products.stream().map(Product::getProductId).toList();
-        Map<String, Inventory> inventoryMap = inventoryRepo.findByProductIdIn(ids).stream()
-                .collect(Collectors.toMap(Inventory::getProductId, Function.identity()));
-
-        return products.stream()
-                .map(p -> mapToDto(p, inventoryMap.get(p.getProductId())))
-                .collect(Collectors.toList());
-    }
-
-    // ── Private helpers ──────────────────────────────────────────────
-
-    private List<ProductDto> fetchFromDbAndCache(int page, int size, String sortBy, String sortOrder,
-                                                  String lastId, String lastValue, String pageKey) {
-        List<Product> products = fetchProductsFromDb(page, size, sortBy, sortOrder, lastId, lastValue);
+    private List<ProductDto> loadFromDbAndCache(int page, int size,
+                                                 String sortBy, String sortOrder,
+                                                 String lastId, String lastValue,
+                                                 boolean useCursor, String pageKey) {
+        List<Product> products = useCursor
+                ? queryService.findByKeyset(lastId, lastValue, size, sortBy, sortOrder)
+                : queryService.findByOffset(page, size, sortBy, sortOrder);
 
         if (products.isEmpty()) {
-            cacheService.cacheProductPageIds(pageKey, Collections.emptyList());
+            cache.putPageIds(pageKey, Collections.emptyList());
             return Collections.emptyList();
         }
 
         List<String> ids = products.stream().map(Product::getProductId).toList();
-        cacheService.cacheProductPageIds(pageKey, ids);
+        Map<String, Inventory> inventoryMap = inventoryService.findMapByProducts(products);
+        List<ProductDto> dtos = mapper.toDtos(products, inventoryMap);
 
-        List<ProductDto> dtos = mapProductsToDtos(products);
-        cacheService.cacheProducts(dtos);
+        cache.putPageIds(pageKey, ids);
+        cache.putAll(dtos);
         return dtos;
     }
 
-    private List<ProductDto> assembleFromCache(List<String> productIds) {
-        List<ProductDto> cached = cacheService.getProducts(productIds);
+    // ── Cache HIT path: resolve from cache ──────────────────────────
 
+    private List<ProductDto> resolveFromCache(List<String> productIds) {
+        if (productIds.isEmpty()) return Collections.emptyList();
+
+        List<ProductDto> cached = cache.getAll(productIds);
+        Map<String, ProductDto> resultMap = new LinkedHashMap<>();
         List<String> missingIds = new ArrayList<>();
-        Map<String, ProductDto> map = new java.util.LinkedHashMap<>();
 
         for (int i = 0; i < productIds.size(); i++) {
             ProductDto dto = cached.get(i);
             if (dto != null) {
-                map.put(productIds.get(i), dto);
+                resultMap.put(productIds.get(i), dto);
             } else {
                 missingIds.add(productIds.get(i));
             }
         }
 
         if (!missingIds.isEmpty()) {
-            List<ProductDto> fetched = mapProductsToDtos(findProductsByIds(missingIds));
-            cacheService.cacheProducts(fetched);
-            fetched.forEach(dto -> map.put(dto.getProductId(), dto));
+            fillMissingFromDb(missingIds, resultMap);
         }
 
-        // Preserve original order
+        // Reassemble in original order
         return productIds.stream()
-                .map(map::get)
-                .filter(java.util.Objects::nonNull)
+                .map(resultMap::get)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private List<Product> fetchProductsFromDb(int page, int size, String sortBy, String sortOrder,
-                                               String lastId, String lastValue) {
-        if (lastId != null && !lastId.isBlank()) {
-            return fetchByKeyset(size, sortBy, sortOrder, lastId, lastValue);
-        }
-        Sort.Direction direction = "desc".equalsIgnoreCase(sortOrder) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        return productRepo.findAll(PageRequest.of(page, size, Sort.by(direction, sortBy))).getContent();
+    private void fillMissingFromDb(List<String> missingIds, Map<String, ProductDto> resultMap) {
+        List<Product> products = queryService.findByIds(missingIds);
+        Map<String, Inventory> inventoryMap = inventoryService.findMapByProducts(products);
+        List<ProductDto> dtos = mapper.toDtos(products, inventoryMap);
+        cache.putAll(dtos);
+        dtos.forEach(dto -> resultMap.put(dto.getProductId(), dto));
     }
 
-    private List<Product> fetchByKeyset(int size, String sortBy, String sortOrder,
-                                         String lastId, String lastValue) {
-        PageRequest pageable = PageRequest.of(0, size);
+    // ── Utility ─────────────────────────────────────────────────────
 
-        if ("price".equalsIgnoreCase(sortBy)) {
-            BigDecimal price;
-            try {
-                price = lastValue != null ? new BigDecimal(lastValue) : BigDecimal.ZERO;
-            } catch (NumberFormatException e) {
-                price = BigDecimal.ZERO;
-            }
-            return "desc".equalsIgnoreCase(sortOrder)
-                    ? productRepo.findByPriceDescCursor(price, lastId, pageable)
-                    : productRepo.findByPriceAscCursor(price, lastId, pageable);
-        }
-
-        return "desc".equalsIgnoreCase(sortOrder)
-                ? productRepo.findByProductIdLessThanOrderByProductIdDesc(lastId, pageable)
-                : productRepo.findByProductIdGreaterThanOrderByProductIdAsc(lastId, pageable);
-    }
-
-    private ProductDto mapToDto(Product p, Inventory inv) {
-        return new ProductDto(
-                p.getProductId(),
-                p.getName(),
-                p.getPrice(),
-                inv != null ? inv.getQuantity() : 0,
-                p.getImageUrl(),
-                p.getDescription(),
-                p.getSku(),
-                p.getCategory() != null ? p.getCategory().getName() : null
-        );
+    private static String defaultIfBlank(String value, String fallback) {
+        return (value != null && !value.isBlank()) ? value : fallback;
     }
 }

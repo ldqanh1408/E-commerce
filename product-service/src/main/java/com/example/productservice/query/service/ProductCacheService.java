@@ -14,132 +14,145 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Redis cache layer for product data.
+ * <p>
+ * Naming convention:
+ *   put / get / evict  — single item
+ *   putAll / getAll    — batch items
+ *   putPageIds / getPageIds — page-level ID list
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ProductCacheService {
 
-    private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redis;
+    private final ObjectMapper json;
 
     private static final Duration PRODUCT_TTL = Duration.ofDays(1);
     private static final Duration PAGE_TTL = Duration.ofMinutes(5);
-    private static final String PRODUCT_KEY_PREFIX = "product:";
-    private static final String PAGE_KEY_PREFIX = "products:page:ids:";
-    private static final String CURSOR_KEY_PREFIX = "products:cursor:ids:";
 
-    // ── Single product cache ────────────────────────────────────────
+    private static final String PRODUCT_PREFIX = "product:";
+    private static final String PAGE_PREFIX = "products:page:";
+    private static final String CURSOR_PREFIX = "products:cursor:";
 
-    public void cacheProduct(ProductDto product) {
-        String key = PRODUCT_KEY_PREFIX + product.getProductId();
+    // ── Single product ──────────────────────────────────────────────
+
+    public void put(ProductDto product) {
+        writeJson(PRODUCT_PREFIX + product.getProductId(), product, PRODUCT_TTL);
+    }
+
+    public ProductDto get(String productId) {
+        return readJson(PRODUCT_PREFIX + productId, ProductDto.class);
+    }
+
+    public void evict(String productId) {
         try {
-            redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(product), PRODUCT_TTL);
+            redis.delete(PRODUCT_PREFIX + productId);
         } catch (Exception e) {
-            log.error("Error caching product {}: {}", product.getProductId(), e.getMessage());
+            log.error("Failed to evict product {}: {}", productId, e.getMessage());
         }
     }
 
-    public ProductDto getProduct(String productId) {
-        String key = PRODUCT_KEY_PREFIX + productId;
-        try {
-            String json = redisTemplate.opsForValue().get(key);
-            if (json != null) {
-                return objectMapper.readValue(json, ProductDto.class);
-            }
-        } catch (Exception e) {
-            log.error("Error reading product {} from cache: {}", productId, e.getMessage());
-        }
-        return null;
-    }
+    // ── Batch products ──────────────────────────────────────────────
 
-    public void evictProduct(String productId) {
-        try {
-            redisTemplate.delete(PRODUCT_KEY_PREFIX + productId);
-        } catch (Exception e) {
-            log.error("Error evicting product from cache: {}", e.getMessage());
-        }
-    }
-
-    // ── Multi-product cache (pipeline) ──────────────────────────────
-
-    public void cacheProducts(List<ProductDto> products) {
+    public void putAll(List<ProductDto> products) {
         Map<String, String> entries = new HashMap<>();
         for (ProductDto p : products) {
             try {
-                entries.put(PRODUCT_KEY_PREFIX + p.getProductId(), objectMapper.writeValueAsString(p));
+                entries.put(PRODUCT_PREFIX + p.getProductId(), json.writeValueAsString(p));
             } catch (Exception e) {
-                log.error("Error serializing product {}: {}", p.getProductId(), e.getMessage());
+                log.error("Failed to serialize product {}: {}", p.getProductId(), e.getMessage());
             }
         }
         if (entries.isEmpty()) return;
 
         try {
-            long ttlSeconds = PRODUCT_TTL.toSeconds();
-            redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
-                entries.forEach((key, value) -> {
-                    byte[] k = redisTemplate.getStringSerializer().serialize(key);
-                    byte[] v = redisTemplate.getStringSerializer().serialize(value);
-                    connection.setEx(k, ttlSeconds, v);
-                });
+            long ttl = PRODUCT_TTL.toSeconds();
+            redis.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) conn -> {
+                entries.forEach((key, value) -> conn.stringCommands().setEx(
+                        redis.getStringSerializer().serialize(key), ttl,
+                        redis.getStringSerializer().serialize(value)
+                ));
                 return null;
             });
         } catch (Exception e) {
-            log.error("Error caching products batch: {}", e.getMessage());
+            log.error("Failed to cache product batch: {}", e.getMessage());
         }
     }
 
-    public List<ProductDto> getProducts(List<String> productIds) {
-        List<String> keys = productIds.stream().map(id -> PRODUCT_KEY_PREFIX + id).toList();
+    public List<ProductDto> getAll(List<String> productIds) {
+        List<String> keys = productIds.stream().map(id -> PRODUCT_PREFIX + id).toList();
         try {
-            List<String> jsonList = redisTemplate.opsForValue().multiGet(keys);
-            if (jsonList == null) return Collections.emptyList();
+            List<String> values = redis.opsForValue().multiGet(keys);
+            if (values == null) return Collections.emptyList();
 
-            return jsonList.stream()
-                    .map(json -> {
-                        if (json == null) return null;
-                        try {
-                            return objectMapper.readValue(json, ProductDto.class);
-                        } catch (Exception e) {
-                            log.error("Error deserializing cached product: {}", e.getMessage());
-                            return null;
-                        }
-                    })
+            return values.stream()
+                    .map(v -> v != null ? readJsonUnsafe(v, ProductDto.class) : null)
                     .toList();
         } catch (Exception e) {
-            log.error("Error multi-get products from cache: {}", e.getMessage());
+            log.error("Failed to multi-get products: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
 
-    // ── Page ID cache ───────────────────────────────────────────────
+    // ── Page ID list ────────────────────────────────────────────────
 
-    public void cacheProductPageIds(String key, List<String> productIds) {
-        try {
-            redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(productIds), PAGE_TTL);
-        } catch (Exception e) {
-            log.error("Error caching page IDs: {}", e.getMessage());
-        }
+    public void putPageIds(String pageKey, List<String> productIds) {
+        writeJson(pageKey, productIds, PAGE_TTL);
     }
 
-    public List<String> getProductPageIds(String key) {
+    public List<String> getPageIds(String pageKey) {
         try {
-            String json = redisTemplate.opsForValue().get(key);
-            if (json != null) {
-                return objectMapper.readValue(json, new TypeReference<>() {});
+            String value = redis.opsForValue().get(pageKey);
+            if (value != null) {
+                return json.readValue(value, new TypeReference<>() {});
             }
         } catch (Exception e) {
-            log.error("Error reading page IDs from cache: {}", e.getMessage());
+            log.error("Failed to read page IDs [{}]: {}", pageKey, e.getMessage());
         }
         return null;
     }
 
     // ── Key builders ────────────────────────────────────────────────
 
-    public String buildPageKey(int page, int size, String sort, String order) {
-        return PAGE_KEY_PREFIX + page + ":size:" + size + ":sort:" + sort + ":" + order;
+    public String pageKey(int page, int size, String sort, String order) {
+        return PAGE_PREFIX + page + ":" + size + ":" + sort + ":" + order;
     }
 
-    public String buildCursorKey(String lastId, String lastValue, int size, String sort, String order) {
-        return CURSOR_KEY_PREFIX + lastId + ":" + lastValue + ":size:" + size + ":sort:" + sort + ":" + order;
+    public String cursorKey(String lastId, String lastValue, int size, String sort, String order) {
+        return CURSOR_PREFIX + lastId + ":" + lastValue + ":" + size + ":" + sort + ":" + order;
+    }
+
+    // ── Internal helpers ────────────────────────────────────────────
+
+    private void writeJson(String key, Object value, Duration ttl) {
+        try {
+            redis.opsForValue().set(key, json.writeValueAsString(value), ttl);
+        } catch (Exception e) {
+            log.error("Failed to write cache [{}]: {}", key, e.getMessage());
+        }
+    }
+
+    private <T> T readJson(String key, Class<T> type) {
+        try {
+            String value = redis.opsForValue().get(key);
+            if (value != null) {
+                return json.readValue(value, type);
+            }
+        } catch (Exception e) {
+            log.error("Failed to read cache [{}]: {}", key, e.getMessage());
+        }
+        return null;
+    }
+
+    private <T> T readJsonUnsafe(String value, Class<T> type) {
+        try {
+            return json.readValue(value, type);
+        } catch (Exception e) {
+            log.error("Failed to deserialize cache value: {}", e.getMessage());
+            return null;
+        }
     }
 }

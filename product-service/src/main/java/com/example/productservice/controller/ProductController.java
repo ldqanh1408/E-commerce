@@ -1,7 +1,6 @@
 package com.example.productservice.controller;
 
 import com.example.productservice.coreapi.queries.dto.ProductDto;
-import com.example.productservice.query.service.ProductCacheService;
 import com.example.productservice.query.service.ProductReadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,20 +19,10 @@ import java.util.List;
 public class ProductController {
 
     private final ProductReadService productReadService;
-    private final ProductCacheService productCacheService;
 
     @GetMapping("/{id}")
     public ProductDto getProduct(@PathVariable String id) {
-        ProductDto cached = productCacheService.getProduct(id);
-        if (cached != null) {
-            return cached;
-        }
-
-        ProductDto product = productReadService.getProductDetails(id);
-        if (product != null) {
-            productCacheService.cacheProduct(product);
-        }
-        return product;
+        return productReadService.findProductById(id);
     }
 
     @GetMapping
@@ -46,6 +35,6 @@ public class ProductController {
             @RequestParam(required = false) String lastValue
     ) {
         log.debug("getProducts page={}, size={}, sortBy={}, sortOrder={}", page, size, sortBy, sortOrder);
-        return productReadService.getProducts(page, size, sortBy, sortOrder, lastId, lastValue);
+        return productReadService.findProducts(page, size, sortBy, sortOrder, lastId, lastValue);
     }
 }
