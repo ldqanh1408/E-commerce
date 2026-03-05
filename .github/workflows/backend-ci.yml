@@ -117,7 +117,8 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service }}
+          # context: ./${{ matrix.service }} <-- DÒNG GÂY LỖI: Xóa đi
+          context: .                          # Đặt context tại gốc để thấy core-security
+          file: ./${{ matrix.service }}/Dockerfile # Chỉ đường dẫn cụ thể đến Dockerfile
           push: true
-          # Đặt tên image: username/axon-service-name:latest
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/axon-${{ matrix.service }}:latest
