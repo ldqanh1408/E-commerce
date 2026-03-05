@@ -34,8 +34,25 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    # 3. Build & Test từng service
-    - name: Build with Maven
+    # 3. Build Core Libraries (Quan trọng: Phải build trước các service khác)
+    - name: Build Core Libraries
+      run: |
+        echo "Building core-common..."
+        if [ -d "core-common" ]; then
+          cd core-common && mvn clean install -DskipTests && cd ..
+        else
+          echo "core-common not found, skipping..."
+        fi
+        
+        echo "Building core-security..."
+        if [ -d "core-security" ]; then
+          cd core-security && mvn clean install -DskipTests && cd ..
+        else
+          echo "core-security not found, skipping..."
+        fi
+
+    # 4. Build & Test từng service
+    - name: Build Service with Maven
       run: |
         cd ${{ matrix.service }}
         mvn clean package -DskipTests
@@ -69,6 +86,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      # Build Core Libraries (Cần thiết để build service jar)
+      - name: Build Core Libraries
+        run: |
+          echo "Building core-common..."
+          if [ -d "core-common" ]; then
+            cd core-common && mvn clean install -DskipTests && cd ..
+          fi
+          
+          echo "Building core-security..."
+          if [ -d "core-security" ]; then
+            cd core-security && mvn clean install -DskipTests && cd ..
+          fi
 
       # Build file .jar
       - name: Build Jar
