@@ -2,13 +2,16 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# 1. Build core-security trước
+# 1. Build core-security trước (Bắt buộc vì cart-service phụ thuộc vào nó)
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
 # 2. Build cart-service
+# Copy toàn bộ thư mục cart-service vào container
 COPY cart-service ./cart-service
 WORKDIR /app/cart-service
+
+# Build package
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---

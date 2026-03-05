@@ -2,13 +2,16 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# 1. Build core-security trước
+# 1. Build core-security trước (Bắt buộc vì user-service phụ thuộc vào nó)
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
 # 2. Build user-service
+# Copy toàn bộ thư mục user-service vào container
 COPY user-service ./user-service
 WORKDIR /app/user-service
+
+# Build package
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---

@@ -2,13 +2,16 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# 1. Build core-security trước
+# 1. Build core-security trước (Bắt buộc vì api-gateway phụ thuộc vào nó)
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
 # 2. Build api-gateway
+# Copy toàn bộ thư mục api-gateway vào container
 COPY api-gateway ./api-gateway
 WORKDIR /app/api-gateway
+
+# Build package
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---

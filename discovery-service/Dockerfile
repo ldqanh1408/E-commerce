@@ -6,6 +6,8 @@ WORKDIR /app
 # Copy toàn bộ thư mục discovery-service vào container
 COPY discovery-service ./discovery-service
 WORKDIR /app/discovery-service
+
+# Build package
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---
