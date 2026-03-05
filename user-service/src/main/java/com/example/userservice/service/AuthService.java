@@ -1,9 +1,9 @@
 package com.example.userservice.service;
 
+import com.ecommerce.security.util.JwtUtil;
 import com.example.userservice.dto.AuthDto;
 import com.example.userservice.model.User;
 import com.example.userservice.repository.UserRepository;
-import com.example.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
 
     public AuthDto.AuthResponse register(AuthDto.RegisterRequest request) {
@@ -25,14 +25,14 @@ public class AuthService {
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword())) // Hash pass
                 .fullName(request.getFullName())
-                .role("ROLE_CUSTOMER")
+                .role("CUSTOMER")
                 .build();
 
         // 2. Lưu xuống DB
         repository.save(user);
 
         // 3. Tạo Token trả về luôn
-        var jwtToken = jwtService.generateToken(user);
+        var jwtToken = jwtUtil.generateToken(user);
         return new AuthDto.AuthResponse(jwtToken);
     }
 
@@ -51,7 +51,7 @@ public class AuthService {
                 .orElseThrow();
 
         // 3. In thẻ (Token)
-        var jwtToken = jwtService.generateToken(user);
+        var jwtToken = jwtUtil.generateToken(user);
         return new AuthDto.AuthResponse(jwtToken);
     }
 }

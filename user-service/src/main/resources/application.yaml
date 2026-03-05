@@ -19,6 +19,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
+
 # JWT Config (Tự định nghĩa)
 application:
   security:
@@ -47,3 +48,10 @@ eureka:
     prefer-ip-address: true # Ưu tiên dùng IP thay vì Hostname trong Docker
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 10
+
+# Core Security config (override từ core-security module)
+core-security:
+  public-paths:
+    - /api/v1/auth/**
+    - /actuator/**
+

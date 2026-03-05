@@ -1,7 +1,6 @@
 package com.example.productservice.query.service;
 
 import com.example.productservice.coreapi.queries.dto.ProductDto;
-import com.example.productservice.query.entity.Inventory;
 import com.example.productservice.query.entity.Product;
 import com.example.productservice.query.service.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +16,14 @@ import java.util.stream.Collectors;
 
 /**
  * Orchestrator: cache-aside logic ONLY.
- * Delegates DB queries to ProductQueryService / InventoryQueryService,
- * mapping to ProductMapper, caching to ProductCacheService.
+ * Đọc dữ liệu chỉ từ bảng products (không JOIN inventory).
+ * Bảng products đã có cột quantity (Available) được đồng bộ bởi EventHandler.
  */
 @Service
 @RequiredArgsConstructor
 public class ProductReadService {
 
     private final ProductQueryService queryService;
-    private final InventoryQueryService inventoryService;
     private final ProductCacheService cache;
     private final ProductMapper mapper;
 
@@ -33,7 +31,6 @@ public class ProductReadService {
 
     /**
      * Returns a page of products (cache-aside).
-     * Supports offset-based and cursor-based (keyset) pagination.
      */
     public List<ProductDto> findProducts(int page, int size,
                                          String sortBy, String sortOrder,
@@ -46,13 +43,13 @@ public class ProductReadService {
                 ? cache.cursorKey(lastId, lastValue, size, sort, order)
                 : cache.pageKey(page, size, sort, order);
 
-        // 1. Check page-level cache (list of IDs)
+        // 1. Check page-level cache
         List<String> cachedIds = cache.getPageIds(pageKey);
         if (cachedIds != null) {
             return resolveFromCache(cachedIds);
         }
 
-        // 2. Cache miss → query DB, then populate cache
+        // 2. Cache miss → query DB
         return loadFromDbAndCache(page, size, sort, order, lastId, lastValue, useCursor, pageKey);
     }
 
@@ -60,23 +57,32 @@ public class ProductReadService {
      * Returns a single product by ID (cache-aside).
      */
     public ProductDto findProductById(String productId) {
-        // 1. Check product-level cache
+        // 1. Check cache
         ProductDto cached = cache.get(productId);
         if (cached != null) return cached;
 
-        // 2. Cache miss → query DB
+        // 2. Cache miss → query bảng products (không JOIN inventory)
         Product product = queryService.findById(productId);
         if (product == null) return null;
 
-        Inventory inventory = inventoryService.findByProductId(productId);
-        ProductDto dto = mapper.toDto(product, inventory);
+        ProductDto dto = mapper.toDto(product);
 
         // 3. Populate cache
         cache.put(dto);
         return dto;
     }
 
-    // ── Cache MISS path: load from DB ───────────────────────────────
+    /**
+     * Lấy nhiều sản phẩm theo danh sách productId (cache-aside).
+     */
+    public List<ProductDto> findProductsByIds(List<String> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return resolveFromCache(productIds);
+    }
+
+    // ── Cache MISS path ─────────────────────────────────────────────
 
     private List<ProductDto> loadFromDbAndCache(int page, int size,
                                                  String sortBy, String sortOrder,
@@ -92,15 +98,14 @@ public class ProductReadService {
         }
 
         List<String> ids = products.stream().map(Product::getProductId).toList();
-        Map<String, Inventory> inventoryMap = inventoryService.findMapByProducts(products);
-        List<ProductDto> dtos = mapper.toDtos(products, inventoryMap);
+        List<ProductDto> dtos = mapper.toDtos(products);
 
         cache.putPageIds(pageKey, ids);
         cache.putAll(dtos);
         return dtos;
     }
 
-    // ── Cache HIT path: resolve from cache ──────────────────────────
+    // ── Cache HIT path ──────────────────────────────────────────────
 
     private List<ProductDto> resolveFromCache(List<String> productIds) {
         if (productIds.isEmpty()) return Collections.emptyList();
@@ -122,7 +127,6 @@ public class ProductReadService {
             fillMissingFromDb(missingIds, resultMap);
         }
 
-        // Reassemble in original order
         return productIds.stream()
                 .map(resultMap::get)
                 .filter(Objects::nonNull)
@@ -131,8 +135,7 @@ public class ProductReadService {
 
     private void fillMissingFromDb(List<String> missingIds, Map<String, ProductDto> resultMap) {
         List<Product> products = queryService.findByIds(missingIds);
-        Map<String, Inventory> inventoryMap = inventoryService.findMapByProducts(products);
-        List<ProductDto> dtos = mapper.toDtos(products, inventoryMap);
+        List<ProductDto> dtos = mapper.toDtos(products);
         cache.putAll(dtos);
         dtos.forEach(dto -> resultMap.put(dto.getProductId(), dto));
     }

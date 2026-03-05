@@ -12,6 +12,7 @@ spring:
       # password: ... (nếu có)
 
 
+
 management:
   endpoints:
     web:

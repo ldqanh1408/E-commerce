@@ -1,8 +1,13 @@
 # --- Stage 1: Build (Dùng Maven để tạo file .jar) ---
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
+# Build core-security
+COPY core-security ./core-security
+RUN mvn -f core-security/pom.xml clean install -DskipTests
+
+# Build payment-service
+COPY payment-service/pom.xml .
+COPY payment-service/src ./src
 # Build package, bỏ qua test để nhanh hơn
 RUN mvn clean package -DskipTests
 

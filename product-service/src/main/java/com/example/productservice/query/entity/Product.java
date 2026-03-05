@@ -50,6 +50,10 @@ public class Product {
     @Column(name = "price", nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
 
+    @NotNull
+    @Column(name = "quantity", nullable = false, columnDefinition = "integer default 0")
+    private Integer quantity;
+
     @Size(max = 100)
     @Column(name = "sku", length = 100)
     private String sku;

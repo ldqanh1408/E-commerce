@@ -31,7 +31,11 @@
         <spring-cloud.version>2024.0.0</spring-cloud.version>
     </properties>
     <dependencies>
-        <!-- Axon Framework -->
+        <dependency>
+            <groupId>com.ecommerce</groupId>
+            <artifactId>core-security</artifactId>
+            <version>1.0.0</version>
+        </dependency>
         <dependency>
             <groupId>org.axonframework</groupId>
             <artifactId>axon-spring-boot-starter</artifactId>

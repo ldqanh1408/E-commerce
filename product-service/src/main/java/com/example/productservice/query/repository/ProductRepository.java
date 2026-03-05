@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByProductId(String productId);
 
+    Optional<Product> findBySku(String sku);
+
     List<Product> findByProductIdIn(List<String> productIds);
 
     // Keyset pagination by ID

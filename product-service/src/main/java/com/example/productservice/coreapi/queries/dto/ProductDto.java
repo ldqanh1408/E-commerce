@@ -14,7 +14,7 @@ public class ProductDto {
     private String productId;
     private String name;
     private BigDecimal price;
-    private Integer stock;
+    private Integer availableStock; // = quantity trong bảng products (đã trừ reserved)
     private String imageUrl;
     private String description;
     private String sku;

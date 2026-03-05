@@ -13,7 +13,7 @@ public class RouteValidator {
             "/api/v1/auth/register",
             "/api/v1/auth/login",
             "/api/v1/products",
-            "/products",
+            "/api/v1/cart",
             "/eureka"
     );
 

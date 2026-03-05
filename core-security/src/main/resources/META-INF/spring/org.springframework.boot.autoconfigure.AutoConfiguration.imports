@@ -1,0 +1,2 @@
+com.ecommerce.security.config.CoreSecurityAutoConfiguration
+com.ecommerce.security.axon.AxonSecurityConfig

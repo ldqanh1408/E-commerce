@@ -1,6 +1,7 @@
 package com.example.productservice.query.projection;
 
 import com.example.productservice.coreapi.queries.GetProductDetailQuery;
+import com.example.productservice.coreapi.queries.GetProductsByIdsQuery;
 import com.example.productservice.coreapi.queries.GetProductsQuery;
 import com.example.productservice.coreapi.queries.dto.ProductDto;
 import com.example.productservice.query.service.ProductReadService;
@@ -28,5 +29,10 @@ public class ProductProjection {
                 query.getSortBy(), query.getSortOrder(),
                 query.getLastId(), query.getLastValue()
         );
+    }
+
+    @QueryHandler
+    public List<ProductDto> handle(GetProductsByIdsQuery query) {
+        return productReadService.findProductsByIds(query.getProductIds());
     }
 }

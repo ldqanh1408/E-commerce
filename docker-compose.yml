@@ -127,11 +127,14 @@ services:
       - axon-net
 
   user-service:
-    build: ./user-service
+    build:
+      context: .
+      dockerfile: ./user-service/Dockerfile
     restart: on-failure
     environment:
       EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
+      AXON_AXONSERVER_SERVERS: axonserver:8124
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/${USER_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
@@ -140,13 +143,17 @@ services:
     depends_on:
       discovery-service:
         condition: service_healthy
+      axonserver:
+        condition: service_healthy
       postgres-user:
         condition: service_healthy
     networks:
       - axon-net
 
   product-service:
-    build: ./product-service
+    build:
+      context: .
+      dockerfile: ./product-service/Dockerfile
     restart: on-failure
     environment:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -173,7 +180,9 @@ services:
       - axon-net
 
   order-service:
-    build: ./order-service
+    build:
+      context: .
+      dockerfile: ./order-service/Dockerfile
     restart: on-failure
     environment:
       EUREKA_URI: http://discovery-service:8761/eureka
@@ -193,7 +202,9 @@ services:
       - axon-net
 
   payment-service:
-    build: ./payment-service
+    build:
+      context: .
+      dockerfile: ./payment-service/Dockerfile
     restart: on-failure
     environment:
       EUREKA_URI: http://discovery-service:8761/eureka
@@ -213,15 +224,20 @@ services:
       - axon-net
 
   cart-service:
-    build: ./cart-service
+    build:
+      context: .
+      dockerfile: ./cart-service/Dockerfile
     restart: on-failure
     environment:
       EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
+      AXON_AXONSERVER_SERVERS: axonserver:8124
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       discovery-service:
+        condition: service_healthy
+      axonserver:
         condition: service_healthy
       redis:
         condition: service_started
@@ -230,7 +246,9 @@ services:
 
   # --- API Gateway ---
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     restart: on-failure
     ports:
       - "${GATEWAY_PORT}:8080" # Map cổng Host -> Gateway

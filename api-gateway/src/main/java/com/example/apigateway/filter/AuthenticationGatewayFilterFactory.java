@@ -1,7 +1,7 @@
 package com.example.apigateway.filter;
 
+import com.ecommerce.security.util.JwtUtil;
 import com.example.apigateway.config.RouteValidator;
-import com.example.apigateway.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
