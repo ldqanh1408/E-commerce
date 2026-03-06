@@ -100,6 +100,11 @@ jobs:
             cd core-security && mvn clean install -DskipTests && cd ..
           fi
 
+          echo "Building product-service-grpc..."
+          if [ -d "product-service-grpc" ]; then
+            cd product-service-grpc && mvn clean install -DskipTests && cd ..
+          fi
+
       # Build file .jar
       - name: Build Jar
         run: |
