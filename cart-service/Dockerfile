@@ -2,16 +2,20 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# 1. Build core-security trước (Bắt buộc vì cart-service phụ thuộc vào nó)
+# Copy parent pom.xml
+COPY pom.xml .
+
+# 1. Build core-security trước
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
-# 2. Build cart-service
-# Copy toàn bộ thư mục cart-service vào container
+# 2. Build product-service-grpc (shared gRPC library)
+COPY product-service-grpc ./product-service-grpc
+RUN mvn -f product-service-grpc/pom.xml clean install -DskipTests
+
+# 3. Build cart-service
 COPY cart-service ./cart-service
 WORKDIR /app/cart-service
-
-# Build package
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---
@@ -19,7 +23,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Copy file .jar từ Stage 1 sang Stage 2
-COPY --from=build /app/cart-service/target/*.jar app.jar
+COPY --from=build /app/cart-service/target/cart-service-0.0.1-SNAPSHOT.jar app.jar
 
 # Biến môi trường mặc định
 ENV SERVER_PORT=8080

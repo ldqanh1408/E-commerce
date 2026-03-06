@@ -1,31 +1,25 @@
-# --- Stage 1: Build (Dùng Maven để tạo file .jar) ---
+# --- Stage 1: Build ---
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# 1. Build core-security trước (Bắt buộc vì product-service phụ thuộc vào nó)
+# 1. Build core-security (Giả định product-service cũng cần lib này)
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
-# 2. Build product-service
-# Copy toàn bộ thư mục product-service vào container
+# 2. Build product-service-grpc (BẮT BUỘC: Vì Product Service implement gRPC interface này)
+COPY product-service-grpc ./product-service-grpc
+RUN mvn -f product-service-grpc/pom.xml clean install -DskipTests
+
+# 3. Build product-service
 COPY product-service ./product-service
 WORKDIR /app/product-service
-
-# Build package
 RUN mvn clean package -DskipTests
 
-# --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---
+# --- Stage 2: Runtime ---
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-
-# Copy file .jar từ Stage 1 sang Stage 2
 COPY --from=build /app/product-service/target/*.jar app.jar
-
-# Biến môi trường mặc định
 ENV SERVER_PORT=8080
-
 EXPOSE 8080
-
-# Chạy ứng dụng with JAVA_OPTS support
 ENV JAVA_OPTS=""
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

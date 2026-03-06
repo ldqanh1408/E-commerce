@@ -169,6 +169,8 @@ services:
       # Redis configuration
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      # gRPC Server
+      GRPC_SERVER_PORT: 9090
     depends_on:
       discovery-service:
         condition: service_healthy
@@ -236,12 +238,16 @@ services:
       AXON_AXONSERVER_SERVERS: axonserver:8124
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      # gRPC Client → product-service
+      GRPC_CLIENT_PRODUCT_SERVICE_ADDRESS: static://product-service:9090
     depends_on:
       discovery-service:
         condition: service_healthy
       axonserver:
         condition: service_healthy
       redis:
+        condition: service_started
+      product-service:
         condition: service_started
     networks:
       - axon-net
