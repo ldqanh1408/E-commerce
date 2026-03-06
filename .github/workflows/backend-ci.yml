@@ -39,23 +39,29 @@ jobs:
       run: |
         echo "Building core-common..."
         if [ -d "core-common" ]; then
-          cd core-common && mvn clean install -DskipTests && cd ..
+          mvn -f core-common/pom.xml clean install -DskipTests
         else
           echo "core-common not found, skipping..."
         fi
         
         echo "Building core-security..."
         if [ -d "core-security" ]; then
-          cd core-security && mvn clean install -DskipTests && cd ..
+          mvn -f core-security/pom.xml clean install -DskipTests
         else
           echo "core-security not found, skipping..."
+        fi
+
+        echo "Building product-service-grpc..."
+        if [ -d "product-service-grpc" ]; then
+          mvn -f product-service-grpc/pom.xml clean install -DskipTests
+        else
+          echo "product-service-grpc not found, skipping..."
         fi
 
     # 4. Build & Test từng service
     - name: Build Service with Maven
       run: |
-        cd ${{ matrix.service }}
-        mvn clean package -DskipTests
+        mvn -f ${{ matrix.service }}/pom.xml clean package -DskipTests
 
   # --- JOB: ĐẨY IMAGE LÊN DOCKER HUB ---
   docker-push:
@@ -92,24 +98,23 @@ jobs:
         run: |
           echo "Building core-common..."
           if [ -d "core-common" ]; then
-            cd core-common && mvn clean install -DskipTests && cd ..
+            mvn -f core-common/pom.xml clean install -DskipTests
           fi
           
           echo "Building core-security..."
           if [ -d "core-security" ]; then
-            cd core-security && mvn clean install -DskipTests && cd ..
+            mvn -f core-security/pom.xml clean install -DskipTests
           fi
 
           echo "Building product-service-grpc..."
           if [ -d "product-service-grpc" ]; then
-            cd product-service-grpc && mvn clean install -DskipTests && cd ..
+            mvn -f product-service-grpc/pom.xml clean install -DskipTests
           fi
 
       # Build file .jar
       - name: Build Jar
         run: |
-          cd ${{ matrix.service }}
-          mvn clean package -DskipTests
+          mvn -f ${{ matrix.service }}/pom.xml clean package -DskipTests
 
       # Login vào Docker Hub (Dùng Secret đã cài đặt)
       - name: Login to Docker Hub
