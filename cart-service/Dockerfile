@@ -19,7 +19,7 @@ WORKDIR /app/cart-service
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime (Chỉ chạy file .jar với JRE nhẹ) ---
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy file .jar từ Stage 1 sang Stage 2

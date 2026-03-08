@@ -12,10 +12,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -132,6 +135,33 @@ public class CoreSecurityAutoConfiguration {
             UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
             source.registerCorsConfiguration("/**", configuration);
             return source;
+        }
+    }
+
+    /**
+     * Cấu hình Security cho Reactive applications (Ví dụ: API Gateway).
+     * Chỉ kích hoạt khi ứng dụng là Reactive (WebFlux).
+     */
+    @Configuration
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+    @EnableWebFluxSecurity
+    @RequiredArgsConstructor
+    static class ReactiveSecurityConfig {
+
+        private final CoreSecurityProperties properties;
+
+        @Bean
+        @ConditionalOnMissingBean
+        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+            return http
+                    // Tắt CSRF vì API Gateway đóng vai trò proxy stateless
+                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                    .authorizeExchange(exchange -> exchange
+                            .pathMatchers(properties.getPublicPaths().toArray(new String[0])).permitAll()
+                            .pathMatchers("/api/v1/auth/**", "/eureka/**").permitAll() // Luôn mở các path này
+                            .anyExchange().permitAll() // Gateway cho phép tất cả đi qua, việc check token sẽ do Filter xử lý
+                    )
+                    .build();
         }
     }
 }

@@ -2,6 +2,7 @@ server:
   port: ${SERVER_PORT:8083}
   shutdown: graceful
 
+
 spring:
   application:
     name: order-service
@@ -10,8 +11,9 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:user}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
   jpa:
+    defer-datasource-initialization: true
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -20,6 +22,9 @@ spring:
             non_contextual_creation: true
   lifecycle:
     timeout-per-shutdown-phase: 20s
+  sql:
+    init:
+      mode: always
 
 axon:
   axonserver:

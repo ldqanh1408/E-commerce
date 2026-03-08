@@ -10,6 +10,7 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:user}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -18,7 +19,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   lifecycle:
     timeout-per-shutdown-phase: 20s
-
+  sql:
+    init:
+      mode: always # 1. Bắt buộc chạy script kể cả khi dùng MySQL/Postgres
 
 # JWT Config (Tự định nghĩa)
 application:

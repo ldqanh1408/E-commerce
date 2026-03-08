@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.axonframework.messaging.responsetypes.ResponseTypes;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +33,7 @@ public class ProductQueryController {
     /**
      * GET /api/v1/products/{id} — Lấy 1 sản phẩm theo productId
      */
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto> getProduct(@PathVariable String id) {
         ProductDto product = queryGateway.query(
@@ -48,6 +50,7 @@ public class ProductQueryController {
     /**
      * GET /api/v1/products — Lấy danh sách sản phẩm (phân trang)
      */
+    @PreAuthorize("hasRole('USER')")
     @GetMapping
     public ResponseEntity<List<ProductDto>> getProducts(
             @RequestParam(defaultValue = "0") int page,
@@ -71,6 +74,7 @@ public class ProductQueryController {
     /**
      * GET /api/v1/products/batch?ids=id1,id2,id3 — Lấy nhiều sản phẩm theo danh sách ID
      */
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/batch")
     public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestParam List<String> ids) {
         List<ProductDto> products = queryGateway.query(

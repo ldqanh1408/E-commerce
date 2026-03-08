@@ -6,7 +6,6 @@ services:
   # --- Axon Server (Event Store & Messaging Hub) ---
   axonserver:
     image: axoniq/axonserver:${AXON_IMAGE_TAG}
-    hostname: axonserver
     environment:
       AXONIQ_AXONSERVER_DEVMODE_ENABLED: "true"
       AXONIQ_AXONSERVER_STANDALONE: "true"
@@ -34,9 +33,18 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pg-user-data:/var/lib/postgresql/data
-      - ./database/user-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/user-service/init.sql:/always-init/init.sql
     ports:
       - "${USER_DB_PORT}:5432"
+    command: >
+      bash -c "
+        docker-entrypoint.sh postgres &
+        until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
+        echo 'Running init script for user-service...';
+        PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
+        echo 'Init script completed.';
+        wait
+      "
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${USER_DB_NAME}"]
       interval: 5s
@@ -52,9 +60,18 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pg-product-data:/var/lib/postgresql/data
-      - ./database/product-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/product-service/init.sql:/always-init/init.sql
     ports:
       - "${PRODUCT_DB_PORT}:5432"
+    command: >
+      bash -c "
+        docker-entrypoint.sh postgres &
+        until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
+        echo 'Running init script for product-service...';
+        PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
+        echo 'Init script completed.';
+        wait
+      "
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${PRODUCT_DB_NAME}"]
       interval: 5s
@@ -70,9 +87,18 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pg-order-data:/var/lib/postgresql/data
-      - ./database/order-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/order-service/init.sql:/always-init/init.sql
     ports:
       - "${ORDER_DB_PORT}:5432"
+    command: >
+      bash -c "
+        docker-entrypoint.sh postgres &
+        until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
+        echo 'Running init script for order-service...';
+        PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
+        echo 'Init script completed.';
+        wait
+      "
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${ORDER_DB_NAME}"]
       interval: 5s
@@ -88,9 +114,18 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pg-payment-data:/var/lib/postgresql/data
-      - ./database/payment-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/payment-service/init.sql:/always-init/init.sql
     ports:
       - "${PAYMENT_DB_PORT}:5432"
+    command: >
+      bash -c "
+        docker-entrypoint.sh postgres &
+        until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
+        echo 'Running init script for payment-service...';
+        PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
+        echo 'Init script completed.';
+        wait
+      "
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${PAYMENT_DB_NAME}"]
       interval: 5s
