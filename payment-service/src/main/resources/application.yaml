@@ -3,6 +3,13 @@ server:
   shutdown: graceful
 
 spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: payment-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   application:
     name: payment-service
   datasource:
@@ -55,3 +62,12 @@ eureka:
     prefer-ip-address: true # Ưu tiên dùng IP thay vì Hostname trong Docker
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 10
+
+
+
+kafka:
+  topic:
+    stripe-events: "stripe.events"
+
+
+

@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: webhook-relay
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+
+stripe:
+  webhook:
+    # Lấy từ biến môi trường do script wait-for-stripe.sh nạp vào
+    secret: ${STRIPE_WEBHOOK_SECRET}
+
+kafka:
+  topic:
+    stripe-events: "stripe.events"

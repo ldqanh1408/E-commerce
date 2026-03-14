@@ -35,6 +35,10 @@ public class User implements UserDetails {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @jakarta.validation.constraints.Size(max = 255)
+    @Column(name = "user_id", nullable = false, unique = true)
+    private String userId;
+
     @jakarta.validation.constraints.Size(max = 50)
     @jakarta.validation.constraints.NotNull
     @Column(name = "username", nullable = false, length = 50)

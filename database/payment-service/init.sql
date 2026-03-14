@@ -4,15 +4,16 @@
 
 CREATE TABLE IF NOT EXISTS payments (
                                         id BIGSERIAL PRIMARY KEY,
-                                        payment_id VARCHAR(255) UNIQUE NOT NULL,     -- UUID (Axon Aggregate ID)
-                                        order_id VARCHAR(255) UNIQUE NOT NULL,       -- Link tới order
+                                        payment_id VARCHAR(255) UNIQUE NOT NULL,     -- Axon Aggregate ID
+                                        order_id VARCHAR(255) UNIQUE NOT NULL,
                                         amount DECIMAL(19, 2) NOT NULL,
                                         status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-                                        payment_method VARCHAR(50),                  -- Được truyền từ Order Service sang
-                                        transaction_id VARCHAR(255),                 -- Mã GD từ ngân hàng
+                                        payment_method VARCHAR(50),
+                                        transaction_id VARCHAR(255),
                                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_payments_payment_id ON payments(payment_id);
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 
 

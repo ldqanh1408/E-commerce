@@ -3,12 +3,12 @@
 -- =======================================================
 
 CREATE TABLE IF NOT EXISTS orders (
-                                      internal_id BIGSERIAL PRIMARY KEY,           -- Đổi tên từ 'id' cho đỡ nhầm lẫn
-                                      order_id VARCHAR(255) UNIQUE NOT NULL,       -- UUID (Axon Aggregate ID)
-                                      user_id VARCHAR(255) NOT NULL,               -- ĐỔI SANG VARCHAR ĐỂ LƯU UUID TỪ JWT
+                                      internal_id BIGSERIAL PRIMARY KEY,
+                                      order_id VARCHAR(255) UNIQUE NOT NULL,       -- Axon Aggregate ID
+                                      user_id VARCHAR(255) NOT NULL,               -- JWT User ID
                                       total_amount DECIMAL(19, 2) NOT NULL,
                                       status VARCHAR(50) NOT NULL DEFAULT 'CREATED',
-                                      payment_method VARCHAR(50) NOT NULL,         -- THÊM MỚI: Khách chọn Momo/Stripe/COD
+                                      payment_method VARCHAR(50) NOT NULL,
                                       shipping_address TEXT NOT NULL,
                                       reason VARCHAR(255),
                                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -17,13 +17,16 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE TABLE IF NOT EXISTS order_items (
                                            id BIGSERIAL PRIMARY KEY,
-                                           order_internal_id BIGINT REFERENCES orders(internal_id) ON DELETE CASCADE, -- Đổi tên tham chiếu
-                                           product_id VARCHAR(255) NOT NULL,            -- UUID của Product
+                                           order_internal_id BIGINT REFERENCES orders(internal_id) ON DELETE CASCADE,
+                                           product_id VARCHAR(255) NOT NULL,            -- Axon Product ID
                                            product_name VARCHAR(255) NOT NULL,
                                            price DECIMAL(19, 2) NOT NULL,
                                            quantity INT NOT NULL,
                                            sub_total DECIMAL(19, 2) NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_orders_order_id ON orders(order_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_order_id ON orders(order_id);

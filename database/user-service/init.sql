@@ -2,9 +2,13 @@
 -- 1. DATABASE: user_db (Dành cho User Service)
 -- =======================================================
 
+-- Xóa bảng cũ nếu tồn tại để tạo lại cho sạch (Cẩn thận khi chạy trên Prod)
+DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE IF NOT EXISTS users (
                                      id BIGSERIAL PRIMARY KEY,
-                                     user_id VARCHAR(255) UNIQUE NOT NULL,    -- THÊM MỚI: Dùng UUID này để bỏ vào JWT Token
+                                     user_id VARCHAR(255) UNIQUE NOT NULL,    -- UUID cho JWT
                                      username VARCHAR(50) NOT NULL UNIQUE,
                                      email VARCHAR(100) NOT NULL UNIQUE,
                                      password_hash VARCHAR(255) NOT NULL,
@@ -17,57 +21,53 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS addresses (
                                          id BIGSERIAL PRIMARY KEY,
-                                         user_id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE, -- Tham chiếu theo UUID
+                                         user_id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE,
                                          street VARCHAR(255) NOT NULL,
                                          city VARCHAR(100) NOT NULL,
                                          country VARCHAR(100) NOT NULL,
                                          zip_code VARCHAR(20)
 );
 
--- Index
 CREATE INDEX IF NOT EXISTS idx_users_userid ON users(user_id);
+
+-- Index
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
--- Data Seeding (Tạo UUID ngẫu nhiên cho seed data)
-INSERT INTO users (user_id, username, email, password_hash, full_name, role)
+-- =======================================================
+-- 2. DATA SEEDING
+-- =======================================================
+
+-- Tạo Admin & User mẫu
+INSERT INTO users (username, email, password_hash, full_name, role, phone)
 VALUES
-    (gen_random_uuid()::varchar, 'admin', 'admin@example.com', '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', 'System Admin', 'ADMIN'),
-    (gen_random_uuid()::varchar, 'user', 'user@example.com', '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', 'Nguyen Van A', 'CUSTOMER')
-ON CONFLICT DO NOTHING;
+    ('admin', 'admin@example.com', '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', 'System Admin', 'ADMIN', '0909000001'),
+    ('user', 'user@example.com', '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', 'Nguyen Van A', 'CUSTOMER', '0909000002')
+ON CONFLICT (username) DO NOTHING;
 
-
--- =======================================================
--- 1. CHẠY SCRIPT NÀY TẠI DB: user_db
--- Sinh ra 1000 Users và Địa chỉ (Kèm Admin)
--- =======================================================
+-- Script sinh 1000 Users tự động
 DO $$
     DECLARE
         i INT;
-        user_uuid VARCHAR;
+        new_user_id BIGINT;
     BEGIN
-        -- Tạo 1 Admin chuẩn
-        INSERT INTO users (user_id, username, email, password_hash, full_name, role)
-        VALUES ('10000000-0000-0000-0000-000000000000', 'admin', 'admin@example.com', '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', 'System Admin', 'ADMIN')
-        ON CONFLICT DO NOTHING;
-
-        -- Vòng lặp sinh 1000 Customer
         FOR i IN 1..1000 LOOP
-                -- Định dạng UUID: 10000000-0000-0000-0000-000000000001 đến 1000
-                user_uuid := '10000000-0000-0000-0000-' || LPAD(i::text, 12, '0');
-
-                INSERT INTO users (user_id, username, email, password_hash, full_name, phone, role)
+                INSERT INTO users (username, email, password_hash, full_name, phone, role)
                 VALUES (
-                           user_uuid,
                            'customer_' || i,
                            'customer_' || i || '@test.com',
-                           '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', -- Pass: password123
+                           '$2a$10$wW5.jR.k.1xQ.u.1xQ.u.e1xQ.u.1xQ.u.1xQ.u.1xQ.u.1xQ.u', -- Pass giả định
                            'Khách Hàng ' || i,
-                           '09' || LPAD((RANDOM() * 100000000)::INT::text, 8, '0'),
+                           '09' || LPAD((FLOOR(RANDOM() * 100000000))::text, 8, '0'),
                            'CUSTOMER'
-                       ) ON CONFLICT DO NOTHING;
+                       )
+                ON CONFLICT (username) DO NOTHING
+                RETURNING user_id INTO new_user_id;
 
-                -- Sinh ngẫu nhiên 1-2 địa chỉ cho mỗi user
-                INSERT INTO addresses (user_id, street, city, country, zip_code)
-                VALUES (user_uuid, FLOOR(RANDOM() * 999 + 1) || ' Đường số ' || FLOOR(RANDOM() * 20 + 1), CASE WHEN i%2=0 THEN 'Hà Nội' ELSE 'TP.HCM' END, 'Vietnam', '700000');
-            END LOOP;
+                -- Nếu insert thành công (không bị conflict), tạo địa chỉ
+                IF new_user_id IS NOT NULL THEN
+                    INSERT INTO addresses (user_id, street, city, country, zip_code)
+                    VALUES (new_user_id, FLOOR(RANDOM() * 999 + 1) || ' Đường số ' || FLOOR(RANDOM() * 20 + 1), CASE WHEN i%2=0 THEN 'Hà Nội' ELSE 'TP.HCM' END, 'Vietnam', '700000');
+                END IF;
+        END LOOP;
     END $$;

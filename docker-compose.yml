@@ -38,17 +38,19 @@ services:
       - "${USER_DB_PORT}:5432"
     command: >
       bash -c "
+        rm -f /tmp/init_done;
         docker-entrypoint.sh postgres &
         until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
         echo 'Running init script for user-service...';
         PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
         echo 'Init script completed.';
+        touch /tmp/init_done;
         wait
       "
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${USER_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${USER_DB_NAME} && test -f /tmp/init_done"]
       interval: 5s
-      retries: 5
+      retries: 10
     networks:
       - axon-net
 
@@ -65,17 +67,19 @@ services:
       - "${PRODUCT_DB_PORT}:5432"
     command: >
       bash -c "
+        rm -f /tmp/init_done;
         docker-entrypoint.sh postgres &
         until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
         echo 'Running init script for product-service...';
         PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
         echo 'Init script completed.';
+        touch /tmp/init_done;
         wait
       "
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${PRODUCT_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${PRODUCT_DB_NAME} && test -f /tmp/init_done"]
       interval: 5s
-      retries: 5
+      retries: 10
     networks:
       - axon-net
 
@@ -92,17 +96,19 @@ services:
       - "${ORDER_DB_PORT}:5432"
     command: >
       bash -c "
+        rm -f /tmp/init_done;
         docker-entrypoint.sh postgres &
         until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
         echo 'Running init script for order-service...';
         PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
         echo 'Init script completed.';
+        touch /tmp/init_done;
         wait
       "
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${ORDER_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${ORDER_DB_NAME} && test -f /tmp/init_done"]
       interval: 5s
-      retries: 5
+      retries: 10
     networks:
       - axon-net
 
@@ -119,17 +125,19 @@ services:
       - "${PAYMENT_DB_PORT}:5432"
     command: >
       bash -c "
+        rm -f /tmp/init_done;
         docker-entrypoint.sh postgres &
         until pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}; do sleep 1; done;
         echo 'Running init script for payment-service...';
         PGPASSWORD=$${POSTGRES_PASSWORD} psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -f /always-init/init.sql || true;
         echo 'Init script completed.';
+        touch /tmp/init_done;
         wait
       "
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${PAYMENT_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${PAYMENT_DB_NAME} && test -f /tmp/init_done"]
       interval: 5s
-      retries: 5
+      retries: 10
     networks:
       - axon-net
 
@@ -193,7 +201,6 @@ services:
       dockerfile: ./product-service/Dockerfile
     restart: on-failure
     environment:
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       EUREKA_URI: http://discovery-service:8761/eureka
       SERVER_PORT: 8080
       AXON_AXONSERVER_SERVERS: axonserver:8124
@@ -252,7 +259,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/${PAYMENT_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
+      kafka:
+        condition: service_started
       discovery-service:
         condition: service_healthy
       axonserver:
@@ -286,6 +296,57 @@ services:
         condition: service_started
     networks:
       - axon-net
+
+  # --- Kafka ---
+  kafka:
+    image: apache/kafka:3.7.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      - axon-net
+
+  # --- Webhook Relay ---
+  webhook-relay:
+    build:
+      context: ./webhook-relay
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8080" # Relay runs on 8080 inside, exposed on 8086
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes:
+      - stripe_share:/shared:ro
+    depends_on:
+      - kafka
+      - stripe-cli
+    networks:
+      - axon-net
+
+  # --- Stripe CLI ---
+  stripe-cli:
+    image: stripe/stripe-cli
+    container_name: stripe-cli
+    volumes:
+      - stripe_share:/shared
+    entrypoint: >
+      /bin/sh -c "stripe listen --api-key ${STRIPE_API_KEY} --forward-to webhook-relay:8080/api/v1/webhooks/stripe > /shared/stripe.log 2>&1"
+    environment:
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+    networks:
+      - axon-net
+    depends_on:
+      - kafka
 
   # --- API Gateway ---
   api-gateway:
@@ -328,6 +389,7 @@ volumes:
   pg-order-data:
   pg-payment-data:
   redis-data:
+  stripe_share:
 
 networks:
   axon-net:
