@@ -1,10 +1,10 @@
 package com.example.orderservice.controller;
 
-import com.example.orderservice.coreapi.commands.CreateOrderCommand;
-import com.example.orderservice.coreapi.commands.DeleteOrderCommand;
-import com.example.orderservice.coreapi.commands.UpdateOrderCommand;
-import com.example.orderservice.coreapi.queries.FindAllOrdersQuery;
-import com.example.orderservice.coreapi.queries.FindOrderQuery;
+import com.example.orderapi.commands.CreateOrderCommand;
+import com.example.orderapi.commands.DeleteOrderCommand;
+import com.example.orderapi.commands.UpdateOrderCommand;
+import com.example.orderapi.queries.FindAllOrdersQuery;
+import com.example.orderapi.queries.FindOrderQuery;
 import com.example.orderservice.query.dto.OrderDto;
 import lombok.RequiredArgsConstructor;
 import org.axonframework.commandhandling.gateway.CommandGateway;

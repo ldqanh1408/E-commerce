@@ -1,8 +1,8 @@
 package com.example.paymentservice.query.projection;
 
-import com.example.paymentservice.coreapi.queries.GetPaymentByOrderIdQuery;
-import com.example.paymentservice.coreapi.queries.GetPaymentQuery;
-import com.example.paymentservice.coreapi.queries.dto.PaymentDto;
+import com.example.paymentapi.queries.GetPaymentByOrderIdQuery;
+import com.example.paymentapi.queries.GetPaymentQuery;
+import com.example.paymentapi.queries.dto.PaymentDto;
 import com.example.paymentservice.query.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.axonframework.queryhandling.QueryHandler;
@@ -24,4 +24,3 @@ public class PaymentProjection {
         return paymentService.findByOrderId(query.getOrderId());
     }
 }
-

@@ -1,8 +1,8 @@
 package com.example.productservice.command.handler;
 
-import com.example.productservice.coreapi.events.ProductCreatedEvent;
-import com.example.productservice.coreapi.events.ProductDeletedEvent;
-import com.example.productservice.coreapi.events.ProductUpdatedEvent;
+import com.example.productapi.events.ProductCreatedEvent;
+import com.example.productapi.events.ProductDeletedEvent;
+import com.example.productapi.events.ProductUpdatedEvent;
 import com.example.productservice.query.entity.Category;
 import com.example.productservice.query.entity.Inventory;
 import com.example.productservice.query.entity.Product;

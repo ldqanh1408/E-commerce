@@ -1,11 +1,11 @@
 package com.example.productservice.command.aggregate;
 
-import com.example.productservice.coreapi.commands.CreateProductCommand;
-import com.example.productservice.coreapi.commands.DeleteProductCommand;
-import com.example.productservice.coreapi.commands.UpdateProductCommand;
-import com.example.productservice.coreapi.events.ProductCreatedEvent;
-import com.example.productservice.coreapi.events.ProductDeletedEvent;
-import com.example.productservice.coreapi.events.ProductUpdatedEvent;
+import com.example.productapi.commands.CreateProductCommand;
+import com.example.productapi.commands.DeleteProductCommand;
+import com.example.productapi.commands.UpdateProductCommand;
+import com.example.productapi.events.ProductCreatedEvent;
+import com.example.productapi.events.ProductDeletedEvent;
+import com.example.productapi.events.ProductUpdatedEvent;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;

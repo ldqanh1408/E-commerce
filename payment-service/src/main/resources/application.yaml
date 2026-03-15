@@ -69,5 +69,12 @@ kafka:
   topic:
     stripe-events: "stripe.events"
 
+# Stripe configuration: loaded from STRIPE_API_KEY env or empty by default
+stripe:
+  api:
+    key: ${STRIPE_API_KEY:}
 
-
+# Frontend URL used to build checkout success/cancel redirects
+app:
+  frontend:
+    url: ${APP_FRONTEND_URL:http://localhost:3000}

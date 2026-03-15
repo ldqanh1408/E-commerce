@@ -1,11 +1,11 @@
 package com.example.paymentservice.command.aggregate;
 
-import com.example.paymentservice.coreapi.commands.CompletePaymentCommand;
-import com.example.paymentservice.coreapi.commands.CreatePaymentCommand;
-import com.example.paymentservice.coreapi.commands.FailPaymentCommand;
-import com.example.paymentservice.coreapi.events.PaymentCompletedEvent;
-import com.example.paymentservice.coreapi.events.PaymentCreatedEvent;
-import com.example.paymentservice.coreapi.events.PaymentFailedEvent;
+import com.example.paymentapi.commands.CreatePaymentCommand;
+import com.example.paymentapi.commands.CompletePaymentCommand;
+import com.example.paymentapi.commands.FailPaymentCommand;
+import com.example.paymentapi.events.PaymentCreatedEvent;
+import com.example.paymentapi.events.PaymentCompletedEvent;
+import com.example.paymentapi.events.PaymentFailedEvent;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
@@ -103,4 +103,3 @@ public class PaymentAggregate {
         this.status = "FAILED";
     }
 }
-

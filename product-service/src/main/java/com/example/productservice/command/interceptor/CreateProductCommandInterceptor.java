@@ -1,6 +1,6 @@
 package com.example.productservice.command.interceptor;
 
-import com.example.productservice.coreapi.commands.CreateProductCommand;
+import com.example.productapi.commands.CreateProductCommand;
 import com.example.productservice.query.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,4 +45,3 @@ public class CreateProductCommandInterceptor implements MessageDispatchIntercept
         };
     }
 }
-

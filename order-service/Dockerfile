@@ -6,8 +6,11 @@ WORKDIR /app
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
-# 2. Build order-service
-# Copy toàn bộ thư mục order-service vào container
+# 2. Build order-api (thư viện API mà order-service phụ thuộc)
+COPY order-api ./order-api
+RUN mvn -f order-api/pom.xml clean install -DskipTests
+
+# 3. Build order-service
 COPY order-service ./order-service
 WORKDIR /app/order-service
 

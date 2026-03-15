@@ -1,8 +1,8 @@
 package com.example.orderservice.saga;
 /*
-import com.example.orderservice.coreapi.events.OrderCreatedEvent;
-// Import các Event/Command từ các Service khác (Giả định nằm trong thư mục coreapi chung)
-import com.example.paymentservice.coreapi.events.PaymentCompletedEvent;
+import com.example.orderapi.events.OrderCreatedEvent;
+// Import các Event/Command từ các Service khác (Giả định nằm trong thư mục api modules)
+import com.example.paymentapi.events.PaymentCompletedEvent;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.modelling.saga.EndSaga;
 import org.axonframework.modelling.saga.SagaEventHandler;
@@ -110,5 +110,4 @@ public class OrderSaga {
     //     // commandGateway.send(new RejectOrderCommand(event.getOrderId(), "Thanh toán thất bại"));
     // }
 }
-
- */
+*/

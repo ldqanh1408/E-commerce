@@ -10,6 +10,9 @@ RUN mvn -f core-security/pom.xml clean install -DskipTests
 COPY product-service-grpc ./product-service-grpc
 RUN mvn -f product-service-grpc/pom.xml clean install -DskipTests
 
+COPY product-api ./product-api
+RUN mvn -f product-api/pom.xml clean install -DskipTests
+
 # 3. Build product-service
 COPY product-service ./product-service
 WORKDIR /app/product-service

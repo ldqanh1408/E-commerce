@@ -1,6 +1,5 @@
 package com.example.productservice.query.service;
 
-import com.example.productservice.coreapi.queries.dto.ProductDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -39,12 +38,12 @@ public class ProductCacheService {
 
     // ── Single product ──────────────────────────────────────────────
 
-    public void put(ProductDto product) {
+    public void put(com.example.productapi.queries.dto.ProductDto product) {
         writeJson(PRODUCT_PREFIX + product.getProductId(), product, PRODUCT_TTL);
     }
 
-    public ProductDto get(String productId) {
-        return readJson(PRODUCT_PREFIX + productId, ProductDto.class);
+    public com.example.productapi.queries.dto.ProductDto get(String productId) {
+        return readJson(PRODUCT_PREFIX + productId, com.example.productapi.queries.dto.ProductDto.class);
     }
 
     public void evict(String productId) {
@@ -57,9 +56,9 @@ public class ProductCacheService {
 
     // ── Batch products ──────────────────────────────────────────────
 
-    public void putAll(List<ProductDto> products) {
+    public void putAll(List<com.example.productapi.queries.dto.ProductDto> products) {
         Map<String, String> entries = new HashMap<>();
-        for (ProductDto p : products) {
+        for (com.example.productapi.queries.dto.ProductDto p : products) {
             try {
                 entries.put(PRODUCT_PREFIX + p.getProductId(), json.writeValueAsString(p));
             } catch (Exception e) {
@@ -82,14 +81,14 @@ public class ProductCacheService {
         }
     }
 
-    public List<ProductDto> getAll(List<String> productIds) {
+    public List<com.example.productapi.queries.dto.ProductDto> getAll(List<String> productIds) {
         List<String> keys = productIds.stream().map(id -> PRODUCT_PREFIX + id).toList();
         try {
             List<String> values = redis.opsForValue().multiGet(keys);
             if (values == null) return Collections.emptyList();
 
             return values.stream()
-                    .map(v -> v != null ? readJsonUnsafe(v, ProductDto.class) : null)
+                    .map(v -> v != null ? readJsonUnsafe(v, com.example.productapi.queries.dto.ProductDto.class) : null)
                     .toList();
         } catch (Exception e) {
             log.error("Failed to multi-get products: {}", e.getMessage());

@@ -1,7 +1,8 @@
 package com.example.orderservice.query.projection;
 
-import com.example.orderservice.coreapi.queries.FindAllOrdersQuery;
-import com.example.orderservice.coreapi.queries.FindOrderQuery;
+
+import com.example.orderapi.queries.FindAllOrdersQuery;
+import com.example.orderapi.queries.FindOrderQuery;
 import com.example.orderservice.query.dto.OrderDto;
 import com.example.orderservice.query.entity.Order;
 import com.example.orderservice.query.service.OrderService;

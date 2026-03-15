@@ -1,6 +1,6 @@
 package com.example.productservice.grpc;
 
-import com.example.productservice.coreapi.queries.dto.ProductDto;
+import com.example.productapi.queries.dto.ProductDto;
 import com.example.productservice.query.service.ProductReadService;
 import com.example.productservicegrpc.grpc.*;
 import io.grpc.Status;
@@ -88,4 +88,3 @@ public class GrpcProductService extends ProductGrpcServiceGrpc.ProductGrpcServic
                 .build();
     }
 }
-

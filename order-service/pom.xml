@@ -32,6 +32,11 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>order-api</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>com.ecommerce</groupId>
             <artifactId>core-security</artifactId>
             <version>1.0.0</version>

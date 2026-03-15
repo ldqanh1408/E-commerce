@@ -1,10 +1,10 @@
 package com.example.productservice.controller;
 
-import com.example.productservice.coreapi.commands.CreateProductCommand;
-import com.example.productservice.coreapi.commands.DeleteProductCommand;
-import com.example.productservice.coreapi.commands.UpdateProductCommand;
-import com.example.productservice.coreapi.commands.dto.CreateProductRequest;
-import com.example.productservice.coreapi.commands.dto.UpdateProductRequest;
+import com.example.productapi.commands.CreateProductCommand;
+import com.example.productapi.commands.DeleteProductCommand;
+import com.example.productapi.commands.UpdateProductCommand;
+import com.example.productapi.commands.dto.CreateProductRequest;
+import com.example.productapi.commands.dto.UpdateProductRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -6,18 +6,29 @@ import com.stripe.Stripe;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class OrderService {
 
-    @Value("${stripe.api.key}")
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+
+    // Use default empty to avoid unresolved-placeholder errors during bean creation
+    @Value("${stripe.api.key:}")
     private String stripeApiKey;
 
-    @Value("${app.frontend.url}")
+    @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
     @PostConstruct
     public void init() {
+        if (stripeApiKey == null || stripeApiKey.isBlank()) {
+            log.warn("Stripe API key is not configured (stripe.api.key). Stripe operations will fail until it's provided.");
+        }
+        if (frontendUrl == null || frontendUrl.isBlank()) {
+            log.warn("Frontend URL (app.frontend.url) is not configured; using default value.");
+        }
         Stripe.apiKey = stripeApiKey;
     }
 

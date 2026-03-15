@@ -1,11 +1,11 @@
 package com.example.orderservice.command.aggregate;
 
-import com.example.orderservice.coreapi.commands.CreateOrderCommand;
-import com.example.orderservice.coreapi.commands.DeleteOrderCommand;
-import com.example.orderservice.coreapi.commands.UpdateOrderCommand;
-import com.example.orderservice.coreapi.events.OrderCreatedEvent;
-import com.example.orderservice.coreapi.events.OrderDeletedEvent;
-import com.example.orderservice.coreapi.events.OrderUpdatedEvent;
+import com.example.orderapi.commands.CreateOrderCommand;
+import com.example.orderapi.commands.DeleteOrderCommand;
+import com.example.orderapi.commands.UpdateOrderCommand;
+import com.example.orderapi.events.OrderCreatedEvent;
+import com.example.orderapi.events.OrderDeletedEvent;
+import com.example.orderapi.events.OrderUpdatedEvent;
 import lombok.NoArgsConstructor;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;

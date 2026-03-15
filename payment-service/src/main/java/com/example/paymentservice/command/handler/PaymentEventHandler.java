@@ -1,8 +1,8 @@
 package com.example.paymentservice.command.handler;
 
-import com.example.paymentservice.coreapi.events.PaymentCompletedEvent;
-import com.example.paymentservice.coreapi.events.PaymentCreatedEvent;
-import com.example.paymentservice.coreapi.events.PaymentFailedEvent;
+import com.example.paymentapi.events.PaymentCompletedEvent;
+import com.example.paymentapi.events.PaymentCreatedEvent;
+import com.example.paymentapi.events.PaymentFailedEvent;
 import com.example.paymentservice.query.entity.Payment;
 import com.example.paymentservice.query.service.PaymentService;
 import lombok.RequiredArgsConstructor;

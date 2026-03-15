@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.paymentservice.service.OrderService;
 import com.example.paymentservice.service.IdempotencyService;
-import com.example.paymentservice.coreapi.commands.CompletePaymentCommand;
+import com.example.paymentapi.commands.CompletePaymentCommand;
 
 @Service
 public class StripeEventConsumer {
@@ -46,7 +46,7 @@ public class StripeEventConsumer {
                     Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
                     if (session != null && session.getClientReferenceId() != null) {
                         log.info("Payment success for Order: {}. Sending CompletePaymentCommand.", session.getClientReferenceId());
-                        
+
                         // Gửi Command tới Axon để kích hoạt Saga bước tiếp theo
                         commandGateway.send(CompletePaymentCommand.builder()
                                 .paymentId(session.getClientReferenceId()) // Dùng OrderId làm TargetAggregateIdentifier cho luồng thanh toán

@@ -1,8 +1,8 @@
 package com.example.orderservice.command.handler;
 
-import com.example.orderservice.coreapi.events.OrderCreatedEvent;
-import com.example.orderservice.coreapi.events.OrderDeletedEvent;
-import com.example.orderservice.coreapi.events.OrderUpdatedEvent;
+import com.example.orderapi.events.OrderCreatedEvent;
+import com.example.orderapi.events.OrderDeletedEvent;
+import com.example.orderapi.events.OrderUpdatedEvent;
 import com.example.orderservice.query.entity.Order;
 import com.example.orderservice.query.service.OrderService;
 import lombok.RequiredArgsConstructor;

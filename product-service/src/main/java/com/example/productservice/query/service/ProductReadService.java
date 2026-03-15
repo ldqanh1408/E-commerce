@@ -1,6 +1,5 @@
 package com.example.productservice.query.service;
 
-import com.example.productservice.coreapi.queries.dto.ProductDto;
 import com.example.productservice.query.entity.Product;
 import com.example.productservice.query.service.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +31,7 @@ public class ProductReadService {
     /**
      * Returns a page of products (cache-aside).
      */
-    public List<ProductDto> findProducts(int page, int size,
+    public List<com.example.productapi.queries.dto.ProductDto> findProducts(int page, int size,
                                          String sortBy, String sortOrder,
                                          String lastId, String lastValue) {
         String sort  = defaultIfBlank(sortBy, "id");
@@ -56,16 +55,16 @@ public class ProductReadService {
     /**
      * Returns a single product by ID (cache-aside).
      */
-    public ProductDto findProductById(String productId) {
+    public com.example.productapi.queries.dto.ProductDto findProductById(String productId) {
         // 1. Check cache
-        ProductDto cached = cache.get(productId);
+        com.example.productapi.queries.dto.ProductDto cached = cache.get(productId);
         if (cached != null) return cached;
 
         // 2. Cache miss → query bảng products (không JOIN inventory)
         Product product = queryService.findById(productId);
         if (product == null) return null;
 
-        ProductDto dto = mapper.toDto(product);
+        com.example.productapi.queries.dto.ProductDto dto = mapper.toDto(product);
 
         // 3. Populate cache
         cache.put(dto);
@@ -75,7 +74,7 @@ public class ProductReadService {
     /**
      * Lấy nhiều sản phẩm theo danh sách productId (cache-aside).
      */
-    public List<ProductDto> findProductsByIds(List<String> productIds) {
+    public List<com.example.productapi.queries.dto.ProductDto> findProductsByIds(List<String> productIds) {
         if (productIds == null || productIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -84,7 +83,7 @@ public class ProductReadService {
 
     // ── Cache MISS path ─────────────────────────────────────────────
 
-    private List<ProductDto> loadFromDbAndCache(int page, int size,
+    private List<com.example.productapi.queries.dto.ProductDto> loadFromDbAndCache(int page, int size,
                                                  String sortBy, String sortOrder,
                                                  String lastId, String lastValue,
                                                  boolean useCursor, String pageKey) {
@@ -98,7 +97,7 @@ public class ProductReadService {
         }
 
         List<String> ids = products.stream().map(Product::getProductId).toList();
-        List<ProductDto> dtos = mapper.toDtos(products);
+        List<com.example.productapi.queries.dto.ProductDto> dtos = mapper.toDtos(products);
 
         cache.putPageIds(pageKey, ids);
         cache.putAll(dtos);
@@ -107,15 +106,15 @@ public class ProductReadService {
 
     // ── Cache HIT path ──────────────────────────────────────────────
 
-    private List<ProductDto> resolveFromCache(List<String> productIds) {
+    private List<com.example.productapi.queries.dto.ProductDto> resolveFromCache(List<String> productIds) {
         if (productIds.isEmpty()) return Collections.emptyList();
 
-        List<ProductDto> cached = cache.getAll(productIds);
-        Map<String, ProductDto> resultMap = new LinkedHashMap<>();
+        List<com.example.productapi.queries.dto.ProductDto> cached = cache.getAll(productIds);
+        Map<String, com.example.productapi.queries.dto.ProductDto> resultMap = new LinkedHashMap<>();
         List<String> missingIds = new ArrayList<>();
 
         for (int i = 0; i < productIds.size(); i++) {
-            ProductDto dto = cached.get(i);
+            com.example.productapi.queries.dto.ProductDto dto = cached.get(i);
             if (dto != null) {
                 resultMap.put(productIds.get(i), dto);
             } else {
@@ -133,9 +132,9 @@ public class ProductReadService {
                 .collect(Collectors.toList());
     }
 
-    private void fillMissingFromDb(List<String> missingIds, Map<String, ProductDto> resultMap) {
+    private void fillMissingFromDb(List<String> missingIds, Map<String, com.example.productapi.queries.dto.ProductDto> resultMap) {
         List<Product> products = queryService.findByIds(missingIds);
-        List<ProductDto> dtos = mapper.toDtos(products);
+        List<com.example.productapi.queries.dto.ProductDto> dtos = mapper.toDtos(products);
         cache.putAll(dtos);
         dtos.forEach(dto -> resultMap.put(dto.getProductId(), dto));
     }

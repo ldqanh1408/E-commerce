@@ -1,6 +1,5 @@
 package com.example.paymentservice.query.service;
 
-import com.example.paymentservice.coreapi.queries.dto.PaymentDto;
 import com.example.paymentservice.query.entity.Payment;
 import com.example.paymentservice.query.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,18 +20,18 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán: " + paymentId));
     }
 
-    public PaymentDto findByPaymentId(String paymentId) {
+    public com.example.paymentapi.queries.dto.PaymentDto findByPaymentId(String paymentId) {
         return toDto(findPaymentEntity(paymentId));
     }
 
-    public PaymentDto findByOrderId(String orderId) {
+    public com.example.paymentapi.queries.dto.PaymentDto findByOrderId(String orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán cho đơn hàng: " + orderId));
         return toDto(payment);
     }
 
-    private PaymentDto toDto(Payment payment) {
-        return PaymentDto.builder()
+    private com.example.paymentapi.queries.dto.PaymentDto toDto(Payment payment) {
+        return com.example.paymentapi.queries.dto.PaymentDto.builder()
                 .paymentId(payment.getPaymentId())
                 .orderId(payment.getOrderId())
                 .amount(payment.getAmount())

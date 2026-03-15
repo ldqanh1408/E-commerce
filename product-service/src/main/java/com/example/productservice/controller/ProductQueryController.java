@@ -1,9 +1,9 @@
 package com.example.productservice.controller;
 
-import com.example.productservice.coreapi.queries.GetProductDetailQuery;
-import com.example.productservice.coreapi.queries.GetProductsByIdsQuery;
-import com.example.productservice.coreapi.queries.GetProductsQuery;
-import com.example.productservice.coreapi.queries.dto.ProductDto;
+import com.example.productapi.queries.GetProductDetailQuery;
+import com.example.productapi.queries.GetProductsByIdsQuery;
+import com.example.productapi.queries.GetProductsQuery;
+import com.example.productapi.queries.dto.ProductDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.messaging.responsetypes.ResponseTypes;

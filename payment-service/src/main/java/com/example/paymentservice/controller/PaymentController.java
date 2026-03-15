@@ -1,11 +1,11 @@
 package com.example.paymentservice.controller;
 
-import com.example.paymentservice.coreapi.commands.CompletePaymentCommand;
-import com.example.paymentservice.coreapi.commands.CreatePaymentCommand;
-import com.example.paymentservice.coreapi.commands.FailPaymentCommand;
-import com.example.paymentservice.coreapi.queries.GetPaymentByOrderIdQuery;
-import com.example.paymentservice.coreapi.queries.GetPaymentQuery;
-import com.example.paymentservice.coreapi.queries.dto.PaymentDto;
+import com.example.paymentapi.commands.CompletePaymentCommand;
+import com.example.paymentapi.commands.CreatePaymentCommand;
+import com.example.paymentapi.commands.FailPaymentCommand;
+import com.example.paymentapi.queries.GetPaymentByOrderIdQuery;
+import com.example.paymentapi.queries.GetPaymentQuery;
+import com.example.paymentapi.queries.dto.PaymentDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -82,5 +82,3 @@ public class PaymentController {
     public record CompletePaymentRequest(String transactionId) {}
     public record FailPaymentRequest(String reason) {}
 }
-
-

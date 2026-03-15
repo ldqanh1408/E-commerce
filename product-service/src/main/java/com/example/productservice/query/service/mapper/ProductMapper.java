@@ -1,6 +1,6 @@
 package com.example.productservice.query.service.mapper;
 
-import com.example.productservice.coreapi.queries.dto.ProductDto;
+import com.example.productapi.queries.dto.ProductDto;
 import com.example.productservice.query.entity.Product;
 import org.springframework.stereotype.Component;
 

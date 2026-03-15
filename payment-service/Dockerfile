@@ -6,8 +6,11 @@ WORKDIR /app
 COPY core-security ./core-security
 RUN mvn -f core-security/pom.xml clean install -DskipTests
 
-# 2. Build payment-service
-# Copy toàn bộ thư mục payment-service vào container
+# 2. Build payment-api (thư viện API mà payment-service phụ thuộc)
+COPY payment-api ./payment-api
+RUN mvn -f payment-api/pom.xml clean install -DskipTests
+
+# 3. Build payment-service
 COPY payment-service ./payment-service
 WORKDIR /app/payment-service
 
