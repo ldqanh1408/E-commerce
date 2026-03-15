@@ -58,6 +58,27 @@ jobs:
           echo "product-service-grpc not found, skipping..."
         fi
 
+        echo "Building product-api..."
+        if [ -d "product-api" ]; then
+          mvn -f product-api/pom.xml clean install -DskipTests
+        else
+          echo "product-api not found, skipping..."
+        fi
+
+        echo "Building payment-api..."
+        if [ -d "payment-api" ]; then
+          mvn -f payment-api/pom.xml clean install -DskipTests
+        else
+          echo "payment-api not found, skipping..."
+        fi
+        
+        echo "Building order-api..."
+        if [ -d "order-api" ]; then
+          mvn -f order-api/pom.xml clean install -DskipTests
+        else
+          echo "order-api not found, skipping..."
+        fi
+
     # 4. Build & Test từng service
     - name: Build Service with Maven
       run: |
