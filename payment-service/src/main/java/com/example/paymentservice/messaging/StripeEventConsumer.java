@@ -3,12 +3,14 @@ package com.example.paymentservice.messaging;
 import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.ApiResource;
+import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.paymentservice.service.OrderService;
 import com.example.paymentservice.service.IdempotencyService;
+import com.example.paymentservice.coreapi.commands.CompletePaymentCommand;
 
 @Service
 public class StripeEventConsumer {
@@ -17,10 +19,12 @@ public class StripeEventConsumer {
 
     private final OrderService orderService;
     private final IdempotencyService idempotencyService;
+    private final CommandGateway commandGateway;
 
-    public StripeEventConsumer(OrderService orderService, IdempotencyService idempotencyService) {
+    public StripeEventConsumer(OrderService orderService, IdempotencyService idempotencyService, CommandGateway commandGateway) {
         this.orderService = orderService;
         this.idempotencyService = idempotencyService;
+        this.commandGateway = commandGateway;
     }
 
     @KafkaListener(topics = "${kafka.topic.stripe-events}", groupId = "payment-service-group")
@@ -40,9 +44,14 @@ public class StripeEventConsumer {
                 case "checkout.session.completed":
                     // Deserialize the inner data object
                     Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
-                    if (session != null) {
-                        log.info("Processing payment for Order: {}", session.getClientReferenceId());
-                        orderService.updateOrderToPaid(session);
+                    if (session != null && session.getClientReferenceId() != null) {
+                        log.info("Payment success for Order: {}. Sending CompletePaymentCommand.", session.getClientReferenceId());
+                        
+                        // Gửi Command tới Axon để kích hoạt Saga bước tiếp theo
+                        commandGateway.send(CompletePaymentCommand.builder()
+                                .paymentId(session.getClientReferenceId()) // Dùng OrderId làm TargetAggregateIdentifier cho luồng thanh toán
+                                .transactionId(session.getPaymentIntent())
+                                .build());
                     }
                     break;
                 // Add more cases as needed
@@ -56,4 +65,3 @@ public class StripeEventConsumer {
         }
     }
 }
-

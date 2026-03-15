@@ -44,8 +44,7 @@ public class PaymentEventHandler {
     public void on(PaymentCompletedEvent event) {
         log.info("Handling PaymentCompletedEvent: {}", event.getPaymentId());
 
-        Payment payment = paymentService.findByPaymentId(event.getPaymentId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán: " + event.getPaymentId()));
+        Payment payment = paymentService.findPaymentEntity(event.getPaymentId());
 
         payment.setStatus("COMPLETED");
         payment.setTransactionId(event.getTransactionId());
@@ -59,8 +58,7 @@ public class PaymentEventHandler {
     public void on(PaymentFailedEvent event) {
         log.info("Handling PaymentFailedEvent: {}", event.getPaymentId());
 
-        Payment payment = paymentService.findByPaymentId(event.getPaymentId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán: " + event.getPaymentId()));
+        Payment payment = paymentService.findPaymentEntity(event.getPaymentId());
 
         payment.setStatus("FAILED");
 
