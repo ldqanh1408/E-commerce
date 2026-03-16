@@ -132,10 +132,37 @@ jobs:
             mvn -f product-service-grpc/pom.xml clean install -DskipTests
           fi
 
+          # Also build API modules so the runner has the jars available (these will be copied into the image)
+          echo "Building product-api..."
+          if [ -d "product-api" ]; then
+            mvn -f product-api/pom.xml clean install -DskipTests
+          fi
+
+          echo "Building payment-api..."
+          if [ -d "payment-api" ]; then
+            mvn -f payment-api/pom.xml clean install -DskipTests
+          fi
+
+          echo "Building order-api..."
+          if [ -d "order-api" ]; then
+            mvn -f order-api/pom.xml clean install -DskipTests
+          fi
+
       # Build file .jar
       - name: Build Jar
         run: |
           mvn -f ${{ matrix.service }}/pom.xml clean package -DskipTests
+
+      # Prepare a small runtime Dockerfile that uses the pre-built jar (avoids running Maven inside docker build)
+      - name: Prepare runtime Dockerfile (use prebuilt jar)
+        run: |
+          cat > ./${{ matrix.service }}/Dockerfile.image <<'EOF'
+          FROM eclipse-temurin:17-jre-alpine
+          WORKDIR /app
+          # copy the jar produced by the previous Build Jar step
+          COPY ${{ matrix.service }}/target/*.jar app.jar
+          ENTRYPOINT ["java","-jar","/app/app.jar"]
+          EOF
 
       # Login vào Docker Hub (Dùng Secret đã cài đặt)
       - name: Login to Docker Hub
@@ -144,12 +171,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build và Push lên Docker Hub
+      # Build và Push lên Docker Hub using the runtime Dockerfile that copies the prebuilt jar
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          # context: ./${{ matrix.service }} <-- DÒNG GÂY LỖI: Xóa đi
-          context: .                          # Đặt context tại gốc để thấy core-security
-          file: ./${{ matrix.service }}/Dockerfile # Chỉ đường dẫn cụ thể đến Dockerfile
+          context: .                          # Đặt context tại gốc để tiếp cận target jar
+          file: ./${{ matrix.service }}/Dockerfile.image # Use the generated runtime Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/axon-${{ matrix.service }}:latest
